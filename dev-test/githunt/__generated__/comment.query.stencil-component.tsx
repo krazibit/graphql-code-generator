@@ -1,8 +1,5 @@
 // tslint:disable
-import * as Types from '../types.d';
-
 import gql from 'graphql-tag';
-import { CommentsPageCommentFragmentDoc } from './comments-page-comment.fragment.stencil-component';
 import 'stencil-apollo';
 import { Component, Prop, h } from '@stencil/core';
 
@@ -61,7 +58,8 @@ const CommentDocument = gql`
 })
 export class CommentComponent {
   @Prop() renderer: import('stencil-apollo').QueryRenderer<CommentQuery, CommentQueryVariables>;
+  @Prop() variables: CommentQueryVariables;
   render() {
-    return <apollo-query query={CommentDocument} renderer={this.renderer} />;
+    return <apollo-query query={CommentDocument} variables={this.variables} renderer={this.renderer} />;
   }
 }

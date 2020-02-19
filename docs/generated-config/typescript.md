@@ -25,8 +25,8 @@ path/to/file.ts:
  config:
    avoidOptionals:
      inputValue: true
+     object: true
 ```
-
 
 ### constEnums (`boolean`, default value: `false`)
 

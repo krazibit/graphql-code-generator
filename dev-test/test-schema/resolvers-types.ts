@@ -16,6 +16,10 @@ export type Query = {
   __typename?: 'Query';
   allUsers: Array<Maybe<User>>;
   userById?: Maybe<User>;
+  /**
+   * Generates a new answer for the
+   * guessing game
+   */
   answer: Array<Scalars['Int']>;
   testArr1?: Maybe<Array<Maybe<Scalars['String']>>>;
   testArr2: Array<Maybe<Scalars['String']>>;
@@ -64,6 +68,8 @@ export type SubscriptionResolver<TResult, TKey extends string, TParent = {}, TCo
 
 export type TypeResolveFn<TTypes, TParent = {}, TContext = {}> = (parent: TParent, context: TContext, info: GraphQLResolveInfo) => Maybe<TTypes>;
 
+export type isTypeOfResolverFn<T = {}> = (obj: T, info: GraphQLResolveInfo) => boolean;
+
 export type NextResolverFn<T> = () => Promise<T>;
 
 export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs = {}> = (next: NextResolverFn<TResult>, parent: TParent, args: TArgs, context: TContext, info: GraphQLResolveInfo) => TResult | Promise<TResult>;
@@ -99,6 +105,7 @@ export type UserResolvers<ContextType = any, ParentType extends ResolversParentT
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   email?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: isTypeOfResolverFn<ParentType>;
 };
 
 export type Resolvers<ContextType = any> = {

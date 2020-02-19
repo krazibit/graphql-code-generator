@@ -44,8 +44,14 @@
       "generated-config/flow": {
         "title": "generated-config/flow"
       },
+      "generated-config/fragment-matcher": {
+        "title": "generated-config/fragment-matcher"
+      },
       "generated-config/import-types": {
         "title": "generated-config/import-types"
+      },
+      "generated-config/introspection": {
+        "title": "generated-config/introspection"
       },
       "generated-config/java-apollo-android": {
         "title": "generated-config/java-apollo-android"
@@ -170,6 +176,9 @@
       "plugins/index": {
         "title": "Available Plugins"
       },
+      "plugins/introspection": {
+        "title": "Introspection"
+      },
       "plugins/java-apollo-android": {
         "title": "Java Apollo Android"
       },
@@ -232,6 +241,9 @@
       },
       "plugins/typescript-urql": {
         "title": "TypeScript Urql"
+      },
+      "plugins/typescript-vue-apollo": {
+        "title": "TypeScript Vue Apollo"
       },
       "plugins/typescript": {
         "title": "TypeScript"

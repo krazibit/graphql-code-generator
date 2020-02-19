@@ -121,7 +121,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { noExport: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).not.toContain('export');
       await validate(result, config);
@@ -152,7 +152,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { namespacedImportName: 'Types' };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
         export type NotificationsQuery = (
@@ -205,7 +205,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { namespacedImportName: 'Types', preResolveTypes: true };
-      const result = await plugin(testSchema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(testSchema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`export type TestQuery = { __typename?: 'Query', f: Types.Maybe<Types.E>, user: { __typename?: 'User', id: string, f: Types.Maybe<Types.E>, j: Types.Maybe<any> } };`);
 
@@ -231,8 +231,8 @@ describe('TypeScript Operations Plugin', () => {
           }
         }
       `);
-      const config = { namingConvention: 'change-case#lowerCase', immutableTypes: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const config = { namingConvention: 'lower-case#lowerCase', immutableTypes: true };
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
         export type notificationsquery = (
@@ -276,7 +276,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(testSchema, [{ filePath: 'test-file.ts', content: doc }], config, { outputFile: '' });
+      const result = await plugin(testSchema, [{ location: 'test-file.ts', document: doc }], config, { outputFile: '' });
       expect(result).toContain(`Pick<User, 'id' | 'joinDate'>`);
       await validate(result, config, testSchema);
     });
@@ -303,7 +303,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { operationResultSuffix: 'Result' };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`export type NotificationsQueryVariables = {};`);
       expect(result).toBeSimilarStringTo(`
@@ -347,8 +347,8 @@ describe('TypeScript Operations Plugin', () => {
           }
         }
       `);
-      const config = { namingConvention: 'change-case#lowerCase' };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const config = { namingConvention: 'lower-case#lowerCase' };
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
         export type notificationsquery = (
@@ -389,8 +389,8 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
 
-      const config = { typesPrefix: 'i', namingConvention: 'change-case#lowerCase' };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const config = { typesPrefix: 'i', namingConvention: 'lower-case#lowerCase' };
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`export type inotificationsqueryvariables = {};`);
       expect(result).toBeSimilarStringTo(`
@@ -451,16 +451,16 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
 
-      expect(await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], {}, { outputFile: '' })).toContain('export type NotificationsQueryQuery =');
-      expect(await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], {}, { outputFile: '' })).toContain('export type MyFragmentFragment =');
-      expect(await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], { dedupeOperationSuffix: false }, { outputFile: '' })).toContain('export type NotificationsQueryQuery =');
-      expect(await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], { dedupeOperationSuffix: true }, { outputFile: '' })).toContain('export type NotificationsQuery =');
-      expect(await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], { dedupeOperationSuffix: true }, { outputFile: '' })).toContain('export type MyFragment =');
-      expect(await plugin(schema, [{ filePath: 'test-file.ts', content: ast2 }], { dedupeOperationSuffix: true }, { outputFile: '' })).toContain('export type NotificationsQuery =');
-      expect(await plugin(schema, [{ filePath: 'test-file.ts', content: ast2 }], { dedupeOperationSuffix: false }, { outputFile: '' })).toContain('export type NotificationsQuery =');
-      expect(await plugin(schema, [{ filePath: 'test-file.ts', content: ast2 }], { dedupeOperationSuffix: false }, { outputFile: '' })).toContain('export type MyFragment =');
+      expect(await plugin(schema, [{ location: 'test-file.ts', document: ast }], {}, { outputFile: '' })).toContain('export type NotificationsQueryQuery =');
+      expect(await plugin(schema, [{ location: 'test-file.ts', document: ast }], {}, { outputFile: '' })).toContain('export type MyFragmentFragment =');
+      expect(await plugin(schema, [{ location: 'test-file.ts', document: ast }], { dedupeOperationSuffix: false }, { outputFile: '' })).toContain('export type NotificationsQueryQuery =');
+      expect(await plugin(schema, [{ location: 'test-file.ts', document: ast }], { dedupeOperationSuffix: true }, { outputFile: '' })).toContain('export type NotificationsQuery =');
+      expect(await plugin(schema, [{ location: 'test-file.ts', document: ast }], { dedupeOperationSuffix: true }, { outputFile: '' })).toContain('export type MyFragment =');
+      expect(await plugin(schema, [{ location: 'test-file.ts', document: ast2 }], { dedupeOperationSuffix: true }, { outputFile: '' })).toContain('export type NotificationsQuery =');
+      expect(await plugin(schema, [{ location: 'test-file.ts', document: ast2 }], { dedupeOperationSuffix: false }, { outputFile: '' })).toContain('export type NotificationsQuery =');
+      expect(await plugin(schema, [{ location: 'test-file.ts', document: ast2 }], { dedupeOperationSuffix: false }, { outputFile: '' })).toContain('export type MyFragment =');
 
-      const withUsage = await plugin(schema, [{ filePath: 'test-file.ts', content: ast3 }], { dedupeOperationSuffix: true }, { outputFile: '' });
+      const withUsage = await plugin(schema, [{ location: 'test-file.ts', document: ast3 }], { dedupeOperationSuffix: true }, { outputFile: '' });
       expect(withUsage).toBeSimilarStringTo(`
         export type MyFragment = (
           { __typename?: 'Query' }
@@ -480,6 +480,75 @@ describe('TypeScript Operations Plugin', () => {
       );
       `);
     });
+  });
+
+  it('Test for omitOperationSuffix', async () => {
+    const ast = parse(/* GraphQL */ `
+      query notificationsQuery {
+        notifications {
+          id
+        }
+      }
+
+      fragment MyFragment on Query {
+        notifications {
+          id
+        }
+      }
+    `);
+    const ast2 = parse(/* GraphQL */ `
+      query notifications {
+        notifications {
+          id
+        }
+      }
+
+      fragment My on Query {
+        notifications {
+          id
+        }
+      }
+    `);
+    const ast3 = parse(/* GraphQL */ `
+      query notifications {
+        ...My
+      }
+
+      fragment My on Query {
+        notifications {
+          id
+        }
+      }
+    `);
+
+    expect(await plugin(schema, [{ location: 'test-file.ts', document: ast }], {}, { outputFile: '' })).toContain('export type NotificationsQueryQuery =');
+    expect(await plugin(schema, [{ location: 'test-file.ts', document: ast }], {}, { outputFile: '' })).toContain('export type MyFragmentFragment =');
+    expect(await plugin(schema, [{ location: 'test-file.ts', document: ast }], { omitOperationSuffix: true }, { outputFile: '' })).toContain('export type NotificationsQuery =');
+    expect(await plugin(schema, [{ location: 'test-file.ts', document: ast }], { omitOperationSuffix: true }, { outputFile: '' })).toContain('export type MyFragment =');
+    expect(await plugin(schema, [{ location: 'test-file.ts', document: ast2 }], { omitOperationSuffix: true }, { outputFile: '' })).toContain('export type Notifications =');
+    expect(await plugin(schema, [{ location: 'test-file.ts', document: ast2 }], { omitOperationSuffix: true }, { outputFile: '' })).toContain('export type My =');
+    expect(await plugin(schema, [{ location: 'test-file.ts', document: ast2 }], { omitOperationSuffix: false }, { outputFile: '' })).toContain('export type NotificationsQuery =');
+    expect(await plugin(schema, [{ location: 'test-file.ts', document: ast2 }], { omitOperationSuffix: false }, { outputFile: '' })).toContain('export type MyFragment =');
+
+    const withUsage = await plugin(schema, [{ location: 'test-file.ts', document: ast3 }], { omitOperationSuffix: true }, { outputFile: '' });
+    expect(withUsage).toBeSimilarStringTo(`
+      export type My = (
+        { __typename?: 'Query' }
+        & { notifications: Array<(
+          { __typename?: 'TextNotification' }
+          & Pick<TextNotification, 'id'>
+        ) | (
+          { __typename?: 'ImageNotification' }
+          & Pick<ImageNotification, 'id'>
+        )> }
+      );
+    `);
+    expect(withUsage).toBeSimilarStringTo(`
+    export type Notifications = (
+      { __typename?: 'Query' }
+      & My
+    );
+    `);
   });
 
   describe('__typename', () => {
@@ -539,7 +608,7 @@ describe('TypeScript Operations Plugin', () => {
         skipTypename: true,
         preResolveTypes: true,
       };
-      const result = await plugin(testSchema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(testSchema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toContain(`export type Q1Query = { search: Array<{ __typename: 'Movie', id: string, title: string } | { __typename: 'Person', id: string, name: string }> };`);
       expect(result).toContain(`export type Q2Query = { search: Array<{ __typename: 'Movie', id: string, title: string } | { __typename: 'Person', id: string, name: string }> };`);
@@ -553,7 +622,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).not.toContain(`__typename`);
       await validate(result, config);
@@ -592,7 +661,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(testSchema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(testSchema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       expect(result).toBeSimilarStringTo(`
       export type TestQuery = (
         { __typename?: 'Query' }
@@ -616,7 +685,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       expect(result).toBeSimilarStringTo(`
       export type Unnamed_1_Query = (
         { __typename?: 'Query' }
@@ -635,7 +704,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { preResolveTypes: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       expect(result).toBeSimilarStringTo(`
       export type Unnamed_1_Query = { __typename?: 'Query', dummy: Maybe<string>, type: 'Query' };
       `);
@@ -650,7 +719,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       expect(result).toBeSimilarStringTo(`
         export type Unnamed_1_Query = (
           { __typename: 'Query' }
@@ -667,7 +736,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { nonOptionalTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       expect(result).toBeSimilarStringTo(`
         export type Unnamed_1_Query = (
           { __typename: 'Query' }
@@ -684,7 +753,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       expect(result).toBeSimilarStringTo(`
         export type Unnamed_1_Query = (
           { __typename?: 'Query' }
@@ -702,7 +771,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
         export type Unnamed_1_Query = (
@@ -728,7 +797,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       expect(result).toBeSimilarStringTo(`
         export type UnionTestQuery = (
           { __typename?: 'Query' } 
@@ -764,7 +833,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       expect(result).toBeSimilarStringTo(`
         export type NotificationsQuery = (
           { __typename?: 'Query' }
@@ -798,7 +867,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       expect(result).toBeSimilarStringTo(`
         export type NotificationsQuery = (
           { __typename?: 'Query' }
@@ -828,7 +897,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       expect(result).toBeSimilarStringTo(`
       { __typename?: 'Query' }
       & { unionTest: Maybe<(
@@ -852,7 +921,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       expect(result).toBeSimilarStringTo(`
         export type Unnamed_1_Query = Pick<Query, 'dummy'>;
       `);
@@ -873,7 +942,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
         export type Unnamed_1_Query = Pick<Query, 'dummy'>;
@@ -907,7 +976,7 @@ describe('TypeScript Operations Plugin', () => {
               foo: String
             }
           `),
-          [{ filePath: 'test-file.ts', content: ast }],
+          [{ location: 'test-file.ts', document: ast }],
           config,
           { outputFile: '' }
         );
@@ -958,7 +1027,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(testSchema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(testSchema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       const usage = `
       type Route = QqQuery['routes'][0];
@@ -997,7 +1066,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(testSchema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(testSchema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       await validateAndCompile(result, config, testSchema);
     });
 
@@ -1027,7 +1096,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(testSchema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(testSchema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       await validateAndCompile(result, config, testSchema);
     });
 
@@ -1055,7 +1124,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(testSchema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(testSchema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       await validateAndCompile(result, config, testSchema);
     });
 
@@ -1086,7 +1155,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(testSchema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(testSchema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       await validateAndCompile(
         result,
         config,
@@ -1141,7 +1210,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(testSchema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(testSchema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       await validateAndCompile(
         result,
@@ -1223,7 +1292,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(testSchema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(testSchema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       const usage = `
       type Route = QqQuery['routes'][0];
@@ -1258,7 +1327,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       expect(result).toBeSimilarStringTo(`
         export type MeQuery = { me: Maybe<UserFieldsFragment> };
       `);
@@ -1282,7 +1351,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
       export type MeQuery = { me: Maybe<(
@@ -1314,7 +1383,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: false };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
       export type MeQuery = (
@@ -1385,7 +1454,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
       export type Unnamed_1_Query = (
@@ -1455,7 +1524,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       expect(result).toBeSimilarStringTo(`
       export type Unnamed_1_Query = (
         { __typename?: 'Query' }
@@ -1508,7 +1577,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
       export type Unnamed_1_Query = (
@@ -1554,7 +1623,7 @@ describe('TypeScript Operations Plugin', () => {
       `);
 
       const config = {};
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       expect(result).toBeSimilarStringTo(`
         export type NotificationsQuery = (
           { __typename?: 'Query' }
@@ -1589,7 +1658,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
         export type UnionTestQuery = (
@@ -1625,7 +1694,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
         export type UnionTestQuery = (
@@ -1665,7 +1734,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = {};
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
         export type UnionTestQuery = (
@@ -1700,7 +1769,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
       expect(result).toBeSimilarStringTo(`
         export type CurrentUserQuery = { me: Maybe<(
             Pick<User, 'username' | 'id'>
@@ -1729,13 +1798,13 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(gitHuntSchema, [{ filePath: 'test-file.ts', content: ast }], config, {
+      const result = await plugin(gitHuntSchema, [{ location: 'test-file.ts', document: ast }], config, {
         outputFile: '',
       });
 
       expect(result).toBeSimilarStringTo(
         `export type MeQueryVariables = {
-          repoFullName: Scalars['String']
+          repoFullName: Scalars['String'];
         };`
       );
       expect(result).toBeSimilarStringTo(`
@@ -1765,7 +1834,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { preResolveTypes: true };
-      const result = await plugin(gitHuntSchema, [{ filePath: 'test-file.ts', content: ast }], config, {
+      const result = await plugin(gitHuntSchema, [{ location: 'test-file.ts', document: ast }], config, {
         outputFile: '',
       });
 
@@ -1810,7 +1879,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { preResolveTypes: true };
-      const result = await plugin(testSchema, [{ filePath: 'test-file.ts', content: ast }], config, {
+      const result = await plugin(testSchema, [{ location: 'test-file.ts', document: ast }], config, {
         outputFile: '',
       });
 
@@ -1858,13 +1927,13 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { preResolveTypes: true, typesPrefix: 'I', enumPrefix: false };
-      const result = await plugin(testSchema, [{ filePath: 'test-file.ts', content: ast }], config, {
+      const result = await plugin(testSchema, [{ location: 'test-file.ts', document: ast }], config, {
         outputFile: '',
       });
 
       const o = await validate(result, config, testSchema);
       expect(o).toBeSimilarStringTo(` export type ITestQueryVariables = {
-        e: Information_EntryType
+        e: Information_EntryType;
       };`);
       expect(o).toContain(`export type IQuery = {`);
       expect(o).toContain(`export enum Information_EntryType {`);
@@ -1878,7 +1947,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
         export type DummyQuery = Pick<Query, 'dummy'>;
@@ -1896,7 +1965,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
         export type DummyQuery = (
@@ -1921,7 +1990,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
         export type CurrentUserQuery = { me: Maybe<(
@@ -1945,7 +2014,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
         export type UserFieldsFragment = (
@@ -1971,7 +2040,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
         export type LoginMutation = { login: Maybe<(
@@ -1989,7 +2058,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
         export type TestQuery = Pick<Query, 'dummy'>;
@@ -2006,7 +2075,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`
         export type TestSubscription = { userCreated: Maybe<Pick<User, 'id'>> };
@@ -2021,18 +2090,18 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(
         `export type TestQueryQueryVariables = {
-          username?: Maybe<Scalars['String']>,
-          email?: Maybe<Scalars['String']>,
-          password: Scalars['String'],
-          input?: Maybe<InputType>,
-          mandatoryInput: InputType,
-          testArray?: Maybe<Array<Maybe<Scalars['String']>>>,
-          requireString: Array<Maybe<Scalars['String']>>,
-          innerRequired: Array<Scalars['String']>
+          username?: Maybe<Scalars['String']>;
+          email?: Maybe<Scalars['String']>;
+          password: Scalars['String'];
+          input?: Maybe<InputType>;
+          mandatoryInput: InputType;
+          testArray?: Maybe<Array<Maybe<Scalars['String']>>>;
+          requireString: Array<Maybe<Scalars['String']>>;
+          innerRequired: Array<Scalars['String']>;
         };`
       );
       await validate(result, config);
@@ -2045,11 +2114,11 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(
         `export type TestQueryQueryVariables = {
-          test?: Maybe<Scalars['DateTime']>
+          test?: Maybe<Scalars['DateTime']>;
         };`
       );
       await validate(result, config);
@@ -2062,7 +2131,7 @@ describe('TypeScript Operations Plugin', () => {
         }
       `);
       const config = { skipTypename: true };
-      const result = await plugin(schema, [{ filePath: 'test-file.ts', content: ast }], config, { outputFile: '' });
+      const result = await plugin(schema, [{ location: 'test-file.ts', document: ast }], config, { outputFile: '' });
 
       expect(result).toBeSimilarStringTo(`export type TestQueryQueryVariables = {};`);
       await validate(result, config);
@@ -2099,7 +2168,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const content = await plugin(
         testSchema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -2141,7 +2210,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const content = await plugin(
         testSchema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -2179,7 +2248,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const content = await plugin(
         testSchema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -2228,7 +2297,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const content = await plugin(
         testSchema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -2280,7 +2349,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const coreContent = await tsPlugin(
         testSchema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -2289,7 +2358,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const pluginContent = await plugin(
         testSchema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -2350,7 +2419,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const content = await plugin(
         testSchema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         { typesPrefix: 'PREFIX_' },
         {
           outputFile: 'graphql.ts',
@@ -2359,7 +2428,7 @@ describe('TypeScript Operations Plugin', () => {
 
       expect(content).toBeSimilarStringTo(`
         export type PREFIX_UsersQueryVariables = {
-          filter: PREFIX_Filter
+          filter: PREFIX_Filter;
         };
       `);
       expect(content).toBeSimilarStringTo(`
@@ -2392,7 +2461,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const content = await plugin(
         testSchema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -2401,7 +2470,7 @@ describe('TypeScript Operations Plugin', () => {
 
       expect(content).toBeSimilarStringTo(`
         export type UsersQueryVariables = {
-          reverse?: Maybe<Scalars['Boolean']>
+          reverse?: Maybe<Scalars['Boolean']>;
         };
       `);
     });
@@ -2457,7 +2526,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const content = await plugin(
         schema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -2532,7 +2601,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const content = await plugin(
         schema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -2594,7 +2663,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const content = await plugin(
         testSchema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -2664,7 +2733,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const content = await plugin(
         testSchema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -2757,7 +2826,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const content = await plugin(
         testSchema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -2813,7 +2882,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const content = await plugin(
         testSchema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -2863,7 +2932,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const content = await plugin(
         testSchema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -2963,7 +3032,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const content = await plugin(
         testSchema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -3133,7 +3202,7 @@ describe('TypeScript Operations Plugin', () => {
         flattenGeneratedTypes: true,
       };
 
-      const content = await plugin(testSchema, [{ filePath: '', content: query }], config, {
+      const content = await plugin(testSchema, [{ location: '', document: query }], config, {
         outputFile: 'graphql.ts',
       });
 
@@ -3266,7 +3335,7 @@ describe('TypeScript Operations Plugin', () => {
         flattenGeneratedTypes: true,
       };
 
-      const content = await plugin(testSchema, [{ filePath: '', content: query }], config, {
+      const content = await plugin(testSchema, [{ location: '', document: query }], config, {
         outputFile: 'graphql.ts',
       });
 
@@ -3317,6 +3386,129 @@ describe('TypeScript Operations Plugin', () => {
   });
 
   describe('Issues', () => {
+    it('#3064 - fragments over interfaces causes issues with fields', async () => {
+      const testSchema = buildSchema(/* GraphQL */ `
+        interface Venue {
+          id: String!
+          name: String!
+        }
+
+        type GPSPosition {
+          lat: Float!
+          lng: Float!
+        }
+
+        interface VenueWithPosition {
+          id: String!
+          gpsPosition: GPSPosition!
+        }
+
+        type Hotel implements VenueWithPosition & Venue {
+          id: String!
+          gpsPosition: GPSPosition!
+          name: String!
+        }
+
+        type Transport implements Venue {
+          id: String!
+          name: String!
+        }
+
+        type Query {
+          hotel: Hotel!
+          transport: Transport!
+        }
+      `);
+
+      const query = parse(/* GraphQL */ `
+        fragment venue on Venue {
+          id
+          ... on VenueWithPosition {
+            gpsPosition {
+              lat
+              lng
+            }
+          }
+        }
+
+        query q {
+          hotel {
+            ...venue
+          }
+          transport {
+            ...venue
+          }
+        }
+      `);
+
+      const config = {};
+
+      const content = await plugin(testSchema, [{ location: '', document: query }], config, {
+        outputFile: 'graphql.ts',
+      });
+
+      expect(content).toMatchSnapshot();
+
+      const o = await validateAndCompile(
+        content,
+        {},
+        testSchema,
+        `function test(q: QQuery) {
+        if (q.hotel) {
+            const t1 = q.hotel.gpsPosition.lat
+        }
+        
+        if (q.transport) {
+            const t2 = q.transport.id;
+        }
+    }`
+      );
+    });
+
+    it('#2916 - Missing import prefix with preResolveTypes: true and near-operation-file preset', async () => {
+      const testSchema = buildSchema(/* GraphQL */ `
+        type Query {
+          user(id: ID!): User!
+        }
+
+        enum Department {
+          Direction
+          Development
+        }
+
+        type User {
+          id: ID!
+          username: String!
+          email: String!
+          department: Department!
+        }
+      `);
+
+      const query = parse(/* GraphQL */ `
+        query user {
+          user(id: 1) {
+            id
+            username
+            email
+            dep: department
+          }
+        }
+      `);
+
+      const config = {
+        skipTypename: true,
+        preResolveTypes: true,
+        namespacedImportName: 'Types',
+      };
+
+      const content = await plugin(testSchema, [{ location: '', document: query }], config, {
+        outputFile: 'graphql.ts',
+      });
+
+      expect(content).toContain(`dep: Types.Department`);
+      expect(content).toMatchSnapshot();
+    });
+
     it('#2699 - Issues with multiple interfaces and unions', async () => {
       const testSchema = buildSchema(/* GraphQL */ `
         interface Node {
@@ -3437,7 +3629,7 @@ describe('TypeScript Operations Plugin', () => {
 
       const content = await plugin(
         testSchema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -3505,7 +3697,7 @@ function test(q: GetEntityBrandDataQuery): void {
 
       const content = await plugin(
         testSchema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -3571,7 +3763,10 @@ function test(q: GetEntityBrandDataQuery): void {
 
       const content = await plugin(
         schema,
-        [{ filePath: '', content: productFragmentDocument }, { filePath: '', content: priceFragmentDocument }],
+        [
+          { location: '', document: productFragmentDocument },
+          { location: '', document: priceFragmentDocument },
+        ],
         {},
         {
           outputFile: 'graphql.ts',
@@ -3618,7 +3813,7 @@ function test(q: GetEntityBrandDataQuery): void {
 
       const content = await plugin(
         schema,
-        [{ filePath: '', content: fragment }],
+        [{ location: '', document: fragment }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -3685,7 +3880,7 @@ function test(q: GetEntityBrandDataQuery): void {
 
       const content = await plugin(
         schema,
-        [{ filePath: '', content: fragment }],
+        [{ location: '', document: fragment }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -3763,7 +3958,7 @@ function test(q: GetEntityBrandDataQuery): void {
 
       const content = await plugin(
         schema,
-        [{ filePath: '', content: fragment }],
+        [{ location: '', document: fragment }],
         {},
         {
           outputFile: 'graphql.ts',
@@ -3823,7 +4018,7 @@ function test(q: GetEntityBrandDataQuery): void {
       `);
       const content = await plugin(
         schema,
-        [{ filePath: '', content: query }],
+        [{ location: '', document: query }],
         {
           skipTypename: true,
         },

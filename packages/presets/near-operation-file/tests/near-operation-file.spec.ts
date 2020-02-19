@@ -1,4 +1,4 @@
-import preset from '../src/index';
+import { preset } from '../src/index';
 import { parse } from 'graphql';
 import { buildASTSchema } from 'graphql';
 
@@ -44,34 +44,140 @@ describe('near-operation-file preset', () => {
   `);
   const testDocuments = [
     {
-      filePath: '/some/deep/path/src/graphql/me-query.graphql',
-      content: operationAst,
+      location: '/some/deep/path/src/graphql/me-query.graphql',
+      document: operationAst,
     },
     {
-      filePath: '/some/deep/path/src/graphql/user-fragment.graphql',
-      content: fragmentAst,
+      location: '/some/deep/path/src/graphql/user-fragment.graphql',
+      document: fragmentAst,
     },
     {
-      filePath: '/some/deep/path/src/graphql/me.query.graphql',
-      content: operationAst,
+      location: '/some/deep/path/src/graphql/me.query.graphql',
+      document: operationAst,
     },
     {
-      filePath: '/some/deep/path/src/graphql/something-query.graphql',
-      content: operationAst,
+      location: '/some/deep/path/src/graphql/something-query.graphql',
+      document: operationAst,
     },
     {
-      filePath: '/some/deep/path/src/graphql/nested/somethingElse.graphql',
-      content: operationAst,
+      location: '/some/deep/path/src/graphql/nested/somethingElse.graphql',
+      document: operationAst,
     },
     {
-      filePath: '/some/deep/path/src/graphql/nested/from-js.js',
-      content: operationAst,
+      location: '/some/deep/path/src/graphql/nested/from-js.js',
+      document: operationAst,
     },
     {
-      filePath: '/some/deep/path/src/graphql/component.ts',
-      content: operationAst,
+      location: '/some/deep/path/src/graphql/component.ts',
+      document: operationAst,
     },
   ];
+
+  describe('Issues', () => {
+    it('#2365 - Should not add Fragment suffix to import identifier when dedupeOperationSuffix: true', async () => {
+      const result = await preset.buildGeneratesSection({
+        baseOutputDir: './src/',
+        config: {
+          dedupeOperationSuffix: true,
+        },
+        presetConfig: {
+          cwd: '/some/deep/path',
+          baseTypesPath: 'types.ts',
+        },
+        schemaAst: schemaNode,
+        schema: schemaDocumentNode,
+        documents: [
+          {
+            location: '/some/deep/path/src/graphql/me-query.graphql',
+            document: parse(/* GraphQL */ `
+              query {
+                user {
+                  id
+                  ...UserFieldsFragment
+                }
+              }
+            `),
+          },
+          {
+            location: '/some/deep/path/src/graphql/user-fragment.graphql',
+            document: parse(/* GraphQL */ `
+              fragment UserFieldsFragment on User {
+                id
+                username
+              }
+            `),
+          },
+        ],
+        plugins: [{ typescript: {} }],
+        pluginMap: { typescript: {} as any },
+      });
+
+      expect(result.map(o => o.plugins)[0]).toEqual(
+        expect.arrayContaining([
+          {
+            add: `import * as Types from '../types';\n`,
+          },
+          {
+            typescript: {},
+          },
+          {
+            add: `import { UserFieldsFragmentDoc, UserFieldsFragment } from './user-fragment.generated';`,
+          },
+        ])
+      );
+    });
+
+    it('#2365 - Should add Fragment suffix to import identifier when dedupeOperationSuffix not set', async () => {
+      const result = await preset.buildGeneratesSection({
+        baseOutputDir: './src/',
+        config: {},
+        presetConfig: {
+          cwd: '/some/deep/path',
+          baseTypesPath: 'types.ts',
+        },
+        schemaAst: schemaNode,
+        schema: schemaDocumentNode,
+        documents: [
+          {
+            location: '/some/deep/path/src/graphql/me-query.graphql',
+            document: parse(/* GraphQL */ `
+              query {
+                user {
+                  id
+                  ...UserFieldsFragment
+                }
+              }
+            `),
+          },
+          {
+            location: '/some/deep/path/src/graphql/user-fragment.graphql',
+            document: parse(/* GraphQL */ `
+              fragment UserFieldsFragment on User {
+                id
+                username
+              }
+            `),
+          },
+        ],
+        plugins: [{ typescript: {} }],
+        pluginMap: { typescript: {} as any },
+      });
+
+      expect(result.map(o => o.plugins)[0]).toEqual(
+        expect.arrayContaining([
+          {
+            add: `import * as Types from '../types';\n`,
+          },
+          {
+            typescript: {},
+          },
+          {
+            add: `import { UserFieldsFragmentFragmentDoc, UserFieldsFragmentFragment } from './user-fragment.generated';`,
+          },
+        ])
+      );
+    });
+  });
 
   it('Should build the correct operation files paths', async () => {
     const result = await preset.buildGeneratesSection({
@@ -195,7 +301,7 @@ describe('near-operation-file preset', () => {
       },
       schema: schemaDocumentNode,
       schemaAst: schemaNode,
-      documents: [{ filePath: '/some/deep/path/src/graphql/me-query.graphql', content: minimalOperationAst }, testDocuments[1]],
+      documents: [{ location: '/some/deep/path/src/graphql/me-query.graphql', document: minimalOperationAst }, testDocuments[1]],
       plugins: [{ typescript: {} }],
       pluginMap: { typescript: {} as any },
     });
@@ -203,7 +309,35 @@ describe('near-operation-file preset', () => {
     expect(result.map(o => o.plugins)[1]).toEqual(expect.arrayContaining([{ add: `import * as Types from '../types';\n` }]));
   });
 
-  it('should fail when multiple fragments with the same name are found', () => {
+  it('should fail when multiple fragments with the same name but different definition are found', () => {
+    expect(() =>
+      preset.buildGeneratesSection({
+        baseOutputDir: './src/',
+        config: {},
+        presetConfig: {
+          cwd: '/some/deep/path',
+          baseTypesPath: 'types.ts',
+        },
+        schema: schemaDocumentNode,
+        schemaAst: schemaNode,
+        documents: [
+          testDocuments[1],
+          {
+            location: `/some/deep/path/src/graphql/user-fragment.graphql`,
+            document: parse(/* GraphQL */ `
+              fragment UserFields on User {
+                id
+              }
+            `),
+          },
+        ],
+        plugins: [{ typescript: {} }],
+        pluginMap: { typescript: {} as any },
+      })
+    ).toThrow('Multiple fragments with the name(s) "UserFields" were found.');
+  });
+
+  it('should NOT fail when multiple fragments with the same name and definition are found', () => {
     expect(() =>
       preset.buildGeneratesSection({
         baseOutputDir: './src/',
@@ -218,7 +352,7 @@ describe('near-operation-file preset', () => {
         plugins: [{ typescript: {} }],
         pluginMap: { typescript: {} as any },
       })
-    ).toThrow('Multiple fragments with the name(s) "UserFields" were found.');
+    ).not.toThrow('Multiple fragments with the name(s) "UserFields" were found.');
   });
 
   it('Should NOT prepend the "add" plugin with Types import when selection set does not include direct fields', async () => {
@@ -233,8 +367,8 @@ describe('near-operation-file preset', () => {
       schema: schemaDocumentNode,
       documents: [
         {
-          filePath: './test.graphql',
-          content: parse(/* GraphQL */ `
+          location: './test.graphql',
+          document: parse(/* GraphQL */ `
             query {
               user {
                 ...UserFields
@@ -263,8 +397,8 @@ describe('near-operation-file preset', () => {
       schema: schemaDocumentNode,
       documents: [
         {
-          filePath: './test.graphql',
-          content: parse(/* GraphQL */ `
+          location: './test.graphql',
+          document: parse(/* GraphQL */ `
             query($id: String) {
               user(id: $id) {
                 ...UserFields
@@ -293,8 +427,8 @@ describe('near-operation-file preset', () => {
       schema: schemaDocumentNode,
       documents: [
         {
-          filePath: '/some/deep/path/src/graphql/nested/here/me-query.graphql',
-          content: operationAst,
+          location: '/some/deep/path/src/graphql/nested/here/me-query.graphql',
+          document: operationAst,
         },
         testDocuments[1],
       ],
@@ -316,8 +450,8 @@ describe('near-operation-file preset', () => {
       schema: schemaDocumentNode,
       documents: [
         {
-          filePath: '/some/deep/path/src/me-query.graphql',
-          content: operationAst,
+          location: '/some/deep/path/src/me-query.graphql',
+          document: operationAst,
         },
         testDocuments[1],
       ],
@@ -325,6 +459,29 @@ describe('near-operation-file preset', () => {
       pluginMap: { typescript: {} as any },
     });
     expect(result.map(o => o.plugins)[0]).toEqual(expect.arrayContaining([{ add: `import * as Types from './types';\n` }]));
+  });
+
+  it('Should not generate an absolute path if the path starts with "~"', async () => {
+    const result = await preset.buildGeneratesSection({
+      baseOutputDir: './src/',
+      config: {},
+      presetConfig: {
+        cwd: '/some/deep/path',
+        baseTypesPath: '~@internal/types',
+      },
+      schemaAst: schemaNode,
+      schema: schemaDocumentNode,
+      documents: [
+        {
+          location: '/some/deep/path/src/me-query.graphql',
+          document: operationAst,
+        },
+        testDocuments[1],
+      ],
+      plugins: [{ typescript: {} }],
+      pluginMap: { typescript: {} as any },
+    });
+    expect(result.map(o => o.plugins)[0]).toEqual(expect.arrayContaining([{ add: `import * as Types from '@internal/types';\n` }]));
   });
 
   it('Should add "add" plugin to plugins map if its not there', async () => {
@@ -387,7 +544,7 @@ describe('near-operation-file preset', () => {
           typescript: {},
         },
         {
-          add: `import { UserFieldsFragment } from './user-fragment.generated';`,
+          add: `import { UserFieldsFragmentDoc, UserFieldsFragment } from './user-fragment.generated';`,
         },
       ])
     );
@@ -405,8 +562,8 @@ describe('near-operation-file preset', () => {
       schema: schemaDocumentNode,
       documents: [
         {
-          filePath: '/some/deep/path/src/graphql/nested/down/here/me-query.graphql',
-          content: operationAst,
+          location: '/some/deep/path/src/graphql/nested/down/here/me-query.graphql',
+          document: operationAst,
         },
         testDocuments[1],
       ],
@@ -417,7 +574,7 @@ describe('near-operation-file preset', () => {
     expect(result.map(o => o.plugins)[0]).toEqual(
       expect.arrayContaining([
         {
-          add: `import { UserFieldsFragment } from '../../../user-fragment.generated';`,
+          add: `import { UserFieldsFragmentDoc, UserFieldsFragment } from '../../../user-fragment.generated';`,
         },
       ])
     );
@@ -436,8 +593,8 @@ describe('near-operation-file preset', () => {
       documents: [
         testDocuments[0],
         {
-          filePath: '/some/deep/path/src/graphql/nested/down/here/user-fragment.graphql',
-          content: fragmentAst,
+          location: '/some/deep/path/src/graphql/nested/down/here/user-fragment.graphql',
+          document: fragmentAst,
         },
       ],
       plugins: [{ typescript: {} }],
@@ -447,7 +604,7 @@ describe('near-operation-file preset', () => {
     expect(result.map(o => o.plugins)[0]).toEqual(
       expect.arrayContaining([
         {
-          add: `import { UserFieldsFragment } from './nested/down/here/user-fragment.generated';`,
+          add: `import { UserFieldsFragmentDoc, UserFieldsFragment } from './nested/down/here/user-fragment.generated';`,
         },
       ])
     );

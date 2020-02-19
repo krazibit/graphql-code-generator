@@ -1,9 +1,9 @@
 import { ClientSideBaseVisitor, ClientSideBasePluginConfig, getConfigValue, LoadedFragment } from '@graphql-codegen/visitor-plugin-common';
-import { StencilApolloRawPluginConfig, StencilComponentType } from './index';
-import * as autoBind from 'auto-bind';
-import { FragmentDefinitionNode, OperationDefinitionNode, GraphQLSchema } from 'graphql';
-import { toPascalCase } from '@graphql-codegen/plugin-helpers';
-import * as changeCase from 'change-case';
+import { StencilComponentType, StencilApolloRawPluginConfig } from './config';
+import autoBind from 'auto-bind';
+import { OperationDefinitionNode, GraphQLSchema } from 'graphql';
+import { paramCase } from 'param-case';
+import { pascalCase } from 'pascal-case';
 
 export interface StencilApolloPluginConfig extends ClientSideBasePluginConfig {
   componentType: StencilComponentType;
@@ -42,8 +42,8 @@ export class StencilApolloVisitor extends ClientSideBaseVisitor<StencilApolloRaw
   private _buildOperationFunctionalComponent(node: OperationDefinitionNode, documentVariableName: string, operationType: string, operationResultType: string, operationVariablesTypes: string): string {
     const operationName: string = this.convertName(node.name.value);
     const propsTypeName: string = this.convertName(operationName + 'Props');
-    const rendererSignature = toPascalCase(`${operationType}Renderer`) + `<${operationResultType}, ${operationVariablesTypes}>`;
-    const apolloStencilComponentTag = changeCase.paramCase(`Apollo${operationType}`);
+    const rendererSignature = pascalCase(`${operationType}Renderer`) + `<${operationResultType}, ${operationVariablesTypes}>`;
+    const apolloStencilComponentTag = paramCase(`Apollo${operationType}`);
     const componentName = this.convertName(`${operationName}Component`);
 
     const propsVar = `
@@ -64,17 +64,18 @@ export const ${componentName} = (props: ${propsTypeName}, children: [StencilApol
 
   private _buildClassComponent(node: OperationDefinitionNode, documentVariableName: string, operationType: string, operationResultType: string, operationVariablesTypes: string): string {
     const componentName: string = this.convertName(node.name.value + 'Component');
-    const apolloStencilComponentTag = changeCase.paramCase(`Apollo${operationType}`);
-    const rendererSignature = toPascalCase(`${operationType}Renderer`);
+    const apolloStencilComponentTag = paramCase(`Apollo${operationType}`);
+    const rendererSignature = pascalCase(`${operationType}Renderer`);
 
     return `
 @Component({
-    tag: '${changeCase.paramCase(`Apollo${toPascalCase(node.name.value)}`)}'
+    tag: '${paramCase(`Apollo${pascalCase(node.name.value)}`)}'
 })
 export class ${componentName} {
     @Prop() renderer: import('stencil-apollo').${rendererSignature}<${operationResultType}, ${operationVariablesTypes}>;
+    @Prop() variables: ${operationVariablesTypes};
     render() {
-        return <${apolloStencilComponentTag} ${operationType.toLowerCase()}={ ${documentVariableName} } renderer={ this.renderer } />;
+        return <${apolloStencilComponentTag} ${operationType.toLowerCase()}={ ${documentVariableName} } variables={ this.variables } renderer={ this.renderer } />;
     }
 }
       `;

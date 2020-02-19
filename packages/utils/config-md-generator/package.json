@@ -1,19 +1,30 @@
 {
   "name": "@graphql-codegen/config-markdown-generator",
   "private": true,
-  "version": "1.8.1",
-  "main": "dist/index.js",
+  "version": "1.12.2",
   "license": "MIT",
   "scripts": {
+    "lint": "tslint src/**/*.ts",
+    "prepack": "bob-update-version",
     "start": "ts-node src/index.ts",
-    "build": "tsc"
+    "build": "bob"
+  },
+  "main": "./dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "typings": "dist/index.d.ts",
+  "typescript": {
+    "definition": "dist/index.d.ts"
+  },
+  "buildOptions": {
+    "input": "./src/index.ts"
   },
   "dependencies": {
-    "@microsoft/tsdoc": "0.12.14",
+    "@microsoft/tsdoc": "0.12.16",
     "tslib": "1.10.0",
-    "typescript": "3.6.4"
+    "typescript": "3.7.5"
   },
   "devDependencies": {
-    "ts-node": "8.4.1"
+    "@ardatan/bob": "0.2.7",
+    "ts-node": "8.6.2"
   }
 }

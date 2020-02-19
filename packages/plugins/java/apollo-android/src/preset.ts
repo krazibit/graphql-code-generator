@@ -1,7 +1,8 @@
-import { Types, toPascalCase } from '@graphql-codegen/plugin-helpers';
+import { Types } from '@graphql-codegen/plugin-helpers';
 import { visit, concatAST, InputObjectTypeDefinitionNode, DocumentNode, Kind, OperationDefinitionNode, FragmentDefinitionNode } from 'graphql';
 import { join } from 'path';
 import { FileType } from './file-type';
+import { pascalCase } from 'pascal-case';
 
 const packageNameToDirectory = (packageName: string): string => {
   return `./${packageName.split('.').join('/')}/`;
@@ -21,7 +22,7 @@ export const preset: Types.OutputPreset = {
     });
 
     const inputTypesDocumentNode: DocumentNode = { kind: Kind.DOCUMENT, definitions: inputTypesAst };
-    const allAst = concatAST(options.documents.reduce((prev, v) => [...prev, v.content], []));
+    const allAst = concatAST(options.documents.map(v => v.document));
     const operationsAst = allAst.definitions.filter(d => d.kind === Kind.OPERATION_DEFINITION) as OperationDefinitionNode[];
     const fragments = allAst.definitions.filter(d => d.kind === Kind.FRAGMENT_DEFINITION) as FragmentDefinitionNode[];
     const externalFragments = fragments.map(frag => ({
@@ -55,11 +56,11 @@ export const preset: Types.OutputPreset = {
             skipDocumentsValidation: true,
           },
           schema: options.schema,
-          documents: [{ content: { kind: Kind.DOCUMENT, definitions: [ast] }, filePath: '' }],
+          documents: [{ document: { kind: Kind.DOCUMENT, definitions: [ast] }, location: '' }],
         };
       }),
       ...operationsAst.map((ast: OperationDefinitionNode) => {
-        const fileName = ast.name.value.toLowerCase().endsWith(ast.operation) ? ast.name.value : `${ast.name.value}${toPascalCase(ast.operation)}`;
+        const fileName = ast.name.value.toLowerCase().endsWith(ast.operation) ? ast.name.value : `${ast.name.value}${pascalCase(ast.operation)}`;
 
         return {
           filename: join(outDir, packageNameToDirectory(options.config.package), fileName + '.java'),
@@ -71,7 +72,7 @@ export const preset: Types.OutputPreset = {
             externalFragments,
           },
           schema: options.schema,
-          documents: [{ content: { kind: Kind.DOCUMENT, definitions: [ast] }, filePath: '' }],
+          documents: [{ document: { kind: Kind.DOCUMENT, definitions: [ast] }, location: '' }],
         };
       }),
       ...fragments.map((ast: FragmentDefinitionNode) => {
@@ -85,7 +86,7 @@ export const preset: Types.OutputPreset = {
             externalFragments,
           },
           schema: options.schema,
-          documents: [{ content: { kind: Kind.DOCUMENT, definitions: [ast] }, filePath: '' }],
+          documents: [{ document: { kind: Kind.DOCUMENT, definitions: [ast] }, location: '' }],
         };
       }),
     ];

@@ -1,6 +1,7 @@
-import { GraphQLSchema, parse, execute } from 'graphql';
-import { PluginFunction, PluginValidateFn, Types, removeFederation } from '@graphql-codegen/plugin-helpers';
 import { extname } from 'path';
+
+import { PluginFunction, PluginValidateFn, Types, removeFederation } from '@graphql-codegen/plugin-helpers';
+import { GraphQLSchema, execute, parse } from 'graphql';
 
 interface IntrospectionResultData {
   __schema: {
@@ -16,8 +17,47 @@ interface IntrospectionResultData {
   };
 }
 
+interface PossibleTypesResultData {
+  possibleTypes: {
+    [key: string]: string[];
+  };
+}
+
 export interface FragmentMatcherConfig {
+  /**
+   * @name module
+   * @type string
+   * @description Compatible only with JSON extension, allow you to choose the export type, either `module.exports` or `export default`.  Allowed values are: `commonjs`,  `es2015`.
+   * @default es2015
+   *
+   * @example
+   * ```yml
+   * generates:
+   * path/to/file.json:
+   *  plugins:
+   *    - fragment-matcher
+   *  config:
+   *    module: commonjs
+   * ```
+   */
   module?: 'commonjs' | 'es2015';
+  /**
+   * @name apolloClientVersion
+   * @type number
+   * @description Compatible only with TS/TSX/JS/JSX extensions, allow you to generate output based on your Apollo-Client version. Valid values are: `2`, `3`.
+   * @default 2
+   *
+   * @example
+   * ```yml
+   * generates:
+   * path/to/file.ts:
+   *  plugins:
+   *    - fragment-matcher
+   *  config:
+   *    apolloClientVersion: 3
+   * ```
+   */
+  apolloClientVersion?: 2 | 3;
   federation?: boolean;
 }
 
@@ -31,14 +71,12 @@ export const plugin: PluginFunction = async (schema: GraphQLSchema, _documents, 
   const config: Required<FragmentMatcherConfig> = {
     module: 'es2015',
     federation: false,
+    apolloClientVersion: 2,
     ...pluginConfig,
   };
 
-  const cleanSchema = config.federation
-    ? removeFederation(schema, {
-        withDirectives: false,
-      })
-    : schema;
+  const apolloClientVersion = parseInt(config.apolloClientVersion as any);
+  const cleanSchema = config.federation ? removeFederation(schema) : schema;
 
   const introspection = await execute<IntrospectionResultData>({
     schema: cleanSchema,
@@ -62,12 +100,23 @@ export const plugin: PluginFunction = async (schema: GraphQLSchema, _documents, 
     throw new Error(`Plugin "fragment-matcher" couldn't introspect the schema`);
   }
 
-  const filteredData: IntrospectionResultData = {
-    __schema: {
-      ...introspection.data.__schema,
-      types: introspection.data.__schema.types.filter(type => type.kind === 'UNION' || type.kind === 'INTERFACE'),
-    },
+  const filterUnionAndInterfaceTypes = type => type.kind === 'UNION' || type.kind === 'INTERFACE';
+  const createPossibleTypesCollection = (acc, type) => {
+    return { ...acc, ...{ [type.name]: type.possibleTypes.map(possibleType => possibleType.name) } };
   };
+
+  const filteredData: PossibleTypesResultData | IntrospectionResultData =
+    apolloClientVersion === 2
+      ? {
+          __schema: {
+            ...introspection.data.__schema,
+            types: introspection.data.__schema.types.filter(type => type.kind === 'UNION' || type.kind === 'INTERFACE'),
+          },
+        }
+      : {
+          possibleTypes: introspection.data.__schema.types.filter(filterUnionAndInterfaceTypes).reduce(createPossibleTypesCollection, {}),
+        };
+
   const content = JSON.stringify(filteredData, null, 2);
 
   if (extensions.json.includes(ext)) {
@@ -83,7 +132,8 @@ export const plugin: PluginFunction = async (schema: GraphQLSchema, _documents, 
   }
 
   if (extensions.ts.includes(ext)) {
-    return `
+    if (apolloClientVersion === 2) {
+      return `
       export interface IntrospectionResultData {
         __schema: {
           types: {
@@ -95,11 +145,22 @@ export const plugin: PluginFunction = async (schema: GraphQLSchema, _documents, 
           }[];
         };
       }
-
       const result: IntrospectionResultData = ${content};
+      export default result;
+    `;
+    } else if (apolloClientVersion === 3) {
+      return `
+      export interface PossibleTypesResultData {
+        possibleTypes: {
+          [key: string]: string[]
+        }
+      }
+
+      const result: PossibleTypesResultData = ${content};
 
       export default result;
     `;
+    }
   }
 
   throw new Error(`Extension ${ext} is not supported`);

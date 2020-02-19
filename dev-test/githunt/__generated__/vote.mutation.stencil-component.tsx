@@ -1,6 +1,4 @@
 // tslint:disable
-import * as Types from '../types.d';
-
 import gql from 'graphql-tag';
 import 'stencil-apollo';
 import { Component, Prop, h } from '@stencil/core';
@@ -31,7 +29,8 @@ const VoteDocument = gql`
 })
 export class VoteComponent {
   @Prop() renderer: import('stencil-apollo').MutationRenderer<VoteMutation, VoteMutationVariables>;
+  @Prop() variables: VoteMutationVariables;
   render() {
-    return <apollo-mutation mutation={VoteDocument} renderer={this.renderer} />;
+    return <apollo-mutation mutation={VoteDocument} variables={this.variables} renderer={this.renderer} />;
   }
 }

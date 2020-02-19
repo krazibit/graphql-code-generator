@@ -1,8 +1,5 @@
 // tslint:disable
-import * as Types from '../types.d';
-
 import gql from 'graphql-tag';
-import { FeedEntryFragmentDoc } from './feed-entry.fragment.stencil-component';
 import 'stencil-apollo';
 import { Component, Prop, h } from '@stencil/core';
 
@@ -33,7 +30,8 @@ const FeedDocument = gql`
 })
 export class FeedComponent {
   @Prop() renderer: import('stencil-apollo').QueryRenderer<FeedQuery, FeedQueryVariables>;
+  @Prop() variables: FeedQueryVariables;
   render() {
-    return <apollo-query query={FeedDocument} renderer={this.renderer} />;
+    return <apollo-query query={FeedDocument} variables={this.variables} renderer={this.renderer} />;
   }
 }

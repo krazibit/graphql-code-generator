@@ -159,7 +159,7 @@ describe('Flow Plugin', () => {
         /** 
          * MyInput
          * multiline
-         **/
+         */
         export type MyInput`);
 
       validateFlow(result);
@@ -349,7 +349,7 @@ describe('Flow Plugin', () => {
   describe('Naming Convention & Types Prefix', () => {
     it('Should use custom namingConvention for type name and args typename', async () => {
       const schema = buildSchema(`type MyType { foo(a: String!, b: String, c: [String], d: [Int!]!): String }`);
-      const result = (await plugin(schema, [], { namingConvention: 'change-case#lowerCase' }, { outputFile: '' })) as Types.ComplexPluginOutput;
+      const result = (await plugin(schema, [], { namingConvention: 'lower-case#lowerCase' }, { outputFile: '' })) as Types.ComplexPluginOutput;
 
       expect(result.content).toMatchSnapshot();
 
@@ -379,7 +379,7 @@ describe('Flow Plugin', () => {
 
     it('Should use custom namingConvention and add custom prefix', async () => {
       const schema = buildSchema(`type MyType { foo(a: String!, b: String, c: [String], d: [Int!]!): String }`);
-      const result = (await plugin(schema, [], { namingConvention: 'change-case#lowerCase', typesPrefix: 'I' }, { outputFile: '' })) as Types.ComplexPluginOutput;
+      const result = (await plugin(schema, [], { namingConvention: 'lower-case#lowerCase', typesPrefix: 'I' }, { outputFile: '' })) as Types.ComplexPluginOutput;
 
       expect(result.content).toMatchSnapshot();
       expect(result.content).toBeSimilarStringTo(`
@@ -387,7 +387,7 @@ describe('Flow Plugin', () => {
           a: $ElementType<Scalars, 'String'>,
           b?: ?$ElementType<Scalars, 'String'>,
           c?: ?Array<?$ElementType<Scalars, 'String'>>,
-          d: Array<$ElementType<Scalars, 'Int'>>
+          d: Array<$ElementType<Scalars, 'Int'>>,
         |};
       `);
 
@@ -444,7 +444,7 @@ describe('Flow Plugin', () => {
   `);
 
     it('Should generate correct values when using links between types - lowerCase', async () => {
-      const result = (await plugin(schema, [], { namingConvention: 'change-case#lowerCase' }, { outputFile: '' })) as Types.ComplexPluginOutput;
+      const result = (await plugin(schema, [], { namingConvention: 'lower-case#lowerCase' }, { outputFile: '' })) as Types.ComplexPluginOutput;
 
       expect(result.content).toMatchSnapshot();
       validateFlow(result);
@@ -484,26 +484,26 @@ describe('Flow Plugin', () => {
 
       expect(result.content).toBeSimilarStringTo(`export type Impl1 = {|
         ...Some_Interface,
-        ...{
+        ...{|
            __typename?: 'Impl1',
           id: $ElementType<Scalars, 'ID'>,
-        }
+        |}
       |};`);
 
       expect(result.content).toBeSimilarStringTo(`export type Impl_2 = {|
         ...Some_Interface,
-        ...{
+        ...{|
            __typename?: 'Impl_2',
           id: $ElementType<Scalars, 'ID'>,
-        }
+        |}
       |};`);
 
       expect(result.content).toBeSimilarStringTo(`export type Impl_3 = {|
         ...Some_Interface,
-        ...{
+        ...{|
            __typename?: 'impl_3',
           id: $ElementType<Scalars, 'ID'>,
-        }
+        |}
       |};`);
 
       expect(result.content).toBeSimilarStringTo(`export type Query = {|
@@ -549,26 +549,26 @@ describe('Flow Plugin', () => {
 
       expect(result.content).toBeSimilarStringTo(`export type IImpl1 = {|
         ...ISome_Interface,
-        ...{
+        ...{|
            __typename?: 'Impl1',
           id: $ElementType<Scalars, 'ID'>,
-        }
+        |}
       |};`);
 
       expect(result.content).toBeSimilarStringTo(`export type IImpl_2 = {|
         ...ISome_Interface,
-        ...{
+        ...{|
            __typename?: 'Impl_2',
           id: $ElementType<Scalars, 'ID'>,
-        }
+        |}
       |};`);
 
       expect(result.content).toBeSimilarStringTo(`export type IImpl_3 = {|
         ...ISome_Interface,
-        ...{
+        ...{|
            __typename?: 'impl_3',
           id: $ElementType<Scalars, 'ID'>,
-        }
+        |}
       |};`);
 
       expect(result.content).toBeSimilarStringTo(`export type IQuery = {|

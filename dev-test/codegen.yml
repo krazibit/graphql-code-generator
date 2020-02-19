@@ -60,6 +60,10 @@ generates:
       imutableTypes: true
     plugins:
       - typescript
+  ./dev-test/test-schema/typings.enum.ts:
+    schema: ./dev-test/test-schema/schema-object.js
+    plugins:
+      - typescript
   ./dev-test/githunt/graphql-declared-modules.d.ts:
     schema: ./dev-test/githunt/schema.json
     documents: ./dev-test/githunt/**/*.graphql
@@ -174,6 +178,24 @@ generates:
       - typescript-react-apollo
     config:
       withHooks: true
+  ./dev-test/githunt/types.apolloAngular.ts:
+    schema: ./dev-test/githunt/schema.json
+    documents: ./dev-test/githunt/**/*.graphql
+    plugins:
+      - add: // tslint:disable
+      - typescript
+      - typescript-operations
+      - typescript-apollo-angular
+  ./dev-test/githunt/types.apolloAngular.sdk.ts:
+      schema: ./dev-test/githunt/schema.json
+      documents: ./dev-test/githunt/**/*.graphql
+      config:
+        sdkClass: true
+      plugins:
+        - add: // tslint:disable
+        - typescript
+        - typescript-operations
+        - typescript-apollo-angular
   ./dev-test/githunt/types.stencilApollo.tsx:
     schema: ./dev-test/githunt/schema.json
     documents: ./dev-test/githunt/**/*.graphql
@@ -230,7 +252,6 @@ generates:
       - typescript-operations
   ./dev-test/star-wars/types.d.ts:
     schema: ./dev-test/star-wars/schema.json
-    documents: ./dev-test/star-wars/**/*.graphql
     config:
       enumsAsTypes: true
     plugins:
@@ -278,3 +299,28 @@ generates:
     plugins:
       - typescript
       - typescript-operations
+  ./dev-test/star-wars/types.refetchFn.tsx:
+    schema: ./dev-test/star-wars/schema.json
+    documents: ./dev-test/star-wars/**/*.graphql
+    plugins:
+      - typescript
+      - typescript-react-apollo
+    config:
+      withRefetchFn: true
+  ./dev-test/test-message/types.tsx:
+    schema: ./dev-test/test-message/schema.graphql
+    documents: ./dev-test/test-message/documents.ts
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-react-apollo
+    config:
+      documentMode: external
+      importDocumentNodeExternallyFrom: './documents.ts'
+      reactApolloVersion: 3
+      gqlImport: graphql-tag
+      hooksImportFrom: '@apollo/react-hooks'
+      withHooks: true
+      withHOC: false
+      withComponent: false
+      withMutationFn: false

@@ -1,18 +1,18 @@
-import { Types, CodegenPlugin } from '@graphql-codegen/plugin-helpers';
-import { DetailedError, codegen, mergeSchemas } from '@graphql-codegen/core';
-import * as Listr from 'listr';
+import { DetailedError, Types, CodegenPlugin } from '@graphql-codegen/plugin-helpers';
+import { codegen } from '@graphql-codegen/core';
 import { normalizeOutputParam, normalizeInstanceOrArray, normalizeConfig } from '@graphql-codegen/plugin-helpers';
 import { Renderer } from './utils/listr-renderer';
-import { loadSchema, loadDocuments } from './load';
-import { GraphQLError, DocumentNode } from 'graphql';
+import { GraphQLError, GraphQLSchema, DocumentNode } from 'graphql';
 import { getPluginByName } from './plugins';
 import { getPresetByName } from './presets';
 import { debugLog } from './utils/debugging';
-import { tryToBuildSchema } from './utils/try-to-build-schema';
+import { printSchemaWithDirectives } from '@graphql-toolkit/common';
+import { CodegenContext, ensureContext } from './config';
+import { parse } from 'graphql';
 
 export const defaultLoader = (mod: string) => import(mod);
 
-export async function executeCodegen(config: Types.Config): Promise<Types.FileOutput[]> {
+export async function executeCodegen(input: CodegenContext | Types.Config): Promise<Types.FileOutput[]> {
   function wrapTask(task: () => void | Promise<void>, source?: string) {
     return async () => {
       try {
@@ -27,11 +27,14 @@ export async function executeCodegen(config: Types.Config): Promise<Types.FileOu
     };
   }
 
+  const context = ensureContext(input);
+  const config = context.getConfig();
   const result: Types.FileOutput[] = [];
   const commonListrOptions = {
     exitOnError: true,
   };
-  let listr: Listr;
+  const Listr = await import('listr').then(m => ('default' in m ? m.default : m));
+  let listr: import('listr');
 
   if (process.env.VERBOSE) {
     listr = new Listr({
@@ -61,12 +64,6 @@ export async function executeCodegen(config: Types.Config): Promise<Types.FileOu
   let generates: { [filename: string]: Types.ConfiguredOutput } = {};
 
   async function normalize() {
-    /* Load Require extensions */
-    const requireExtensions = normalizeInstanceOrArray<string>(config.require);
-    for (const mod of requireExtensions) {
-      await import(mod);
-    }
-
     /* Root templates-config */
     rootConfig = config.config || {};
 
@@ -150,7 +147,7 @@ export async function executeCodegen(config: Types.Config): Promise<Types.FileOu
     title: 'Generate outputs',
     task: () => {
       return new Listr(
-        Object.keys(generates).map<Listr.ListrTask>((filename, i) => {
+        Object.keys(generates).map<import('listr').ListrTask>((filename, i) => {
           const outputConfig = generates[filename];
           const hasPreset = !!outputConfig.preset;
 
@@ -159,6 +156,7 @@ export async function executeCodegen(config: Types.Config): Promise<Types.FileOu
             task: () => {
               const outputFileTemplateConfig = outputConfig.config || {};
               const outputDocuments: Types.DocumentFile[] = [];
+              let outputSchemaAst: GraphQLSchema;
               let outputSchema: DocumentNode;
               const outputSpecificSchemas = normalizeInstanceOrArray<Types.Schema>(outputConfig.schema);
               const outputSpecificDocuments = normalizeInstanceOrArray<Types.OperationDocument>(outputConfig.documents);
@@ -169,14 +167,17 @@ export async function executeCodegen(config: Types.Config): Promise<Types.FileOu
                     title: 'Load GraphQL schemas',
                     task: wrapTask(async () => {
                       debugLog(`[CLI] Loading Schemas`);
-                      const allSchemas = [
-                        ...rootSchemas.map(pointToSchema => loadSchema(pointToSchema, config)),
-                        ...outputSpecificSchemas.map(pointToSchema => loadSchema(pointToSchema, config))
-                      ];
-
-                      if (allSchemas.length > 0) {
-                        outputSchema = mergeSchemas(await Promise.all(allSchemas));
+                      const schemaPointerMap: any = {};
+                      const allSchemaUnnormalizedPointers = [...rootSchemas, ...outputSpecificSchemas];
+                      for (const unnormalizedPtr of allSchemaUnnormalizedPointers) {
+                        if (typeof unnormalizedPtr === 'string') {
+                          schemaPointerMap[unnormalizedPtr] = {};
+                        } else if (typeof unnormalizedPtr === 'object') {
+                          Object.assign(schemaPointerMap, unnormalizedPtr);
+                        }
                       }
+                      outputSchemaAst = await context.loadSchema(schemaPointerMap);
+                      outputSchema = parse(printSchemaWithDirectives(outputSchemaAst));
                     }, filename),
                   },
                   {
@@ -184,7 +185,7 @@ export async function executeCodegen(config: Types.Config): Promise<Types.FileOu
                     task: wrapTask(async () => {
                       debugLog(`[CLI] Loading Documents`);
                       const allDocuments = [...rootDocuments, ...outputSpecificDocuments];
-                      const documents = await loadDocuments(allDocuments, config);
+                      const documents = await context.loadDocuments(allDocuments);
 
                       if (documents.length > 0) {
                         outputDocuments.push(...documents);
@@ -214,7 +215,6 @@ export async function executeCodegen(config: Types.Config): Promise<Types.FileOu
                       };
 
                       let outputs: Types.GenerateOptions[] = [];
-                      const builtSchema = tryToBuildSchema(outputSchema);
 
                       if (hasPreset) {
                         outputs = await preset.buildGeneratesSection({
@@ -222,7 +222,7 @@ export async function executeCodegen(config: Types.Config): Promise<Types.FileOu
                           presetConfig: outputConfig.presetConfig || {},
                           plugins: normalizedPluginsArray,
                           schema: outputSchema,
-                          schemaAst: builtSchema,
+                          schemaAst: outputSchemaAst,
                           documents: outputDocuments,
                           config: mergedConfig,
                           pluginMap,
@@ -233,7 +233,7 @@ export async function executeCodegen(config: Types.Config): Promise<Types.FileOu
                             filename,
                             plugins: normalizedPluginsArray,
                             schema: outputSchema,
-                            schemaAst: builtSchema,
+                            schemaAst: outputSchemaAst,
                             documents: outputDocuments,
                             config: mergedConfig,
                             pluginMap,

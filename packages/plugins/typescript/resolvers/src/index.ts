@@ -1,85 +1,9 @@
-import { printSchemaWithDirectives } from 'graphql-toolkit';
-import { RawResolversConfig, parseMapper } from '@graphql-codegen/visitor-plugin-common';
+import { printSchemaWithDirectives } from '@graphql-toolkit/common';
+import { parseMapper } from '@graphql-codegen/visitor-plugin-common';
 import { Types, PluginFunction, addFederationReferencesToSchema } from '@graphql-codegen/plugin-helpers';
-import { isScalarType, parse, visit, GraphQLSchema, printSchema } from 'graphql';
+import { parse, visit, GraphQLSchema, printSchema } from 'graphql';
 import { TypeScriptResolversVisitor } from './visitor';
-
-export interface TypeScriptResolversPluginConfig extends RawResolversConfig {
-  /**
-   * @name immutableTypes
-   * @type boolean
-   * @description Generates immutable types by adding `readonly` to properties and uses `ReadonlyArray`.
-   * @default false
-   *
-   * @example
-   * ```yml
-   * generates:
-   * path/to/file.ts:
-   *  plugins:
-   *    - typescript
-   *    - typescript-resolvers
-   *  config:
-   *    immutableTypes: true
-   * ```
-   */
-  immutableTypes?: boolean;
-  /**
-   * @name useIndexSignature
-   * @type boolean
-   * @description Adds an index signature to any generates resolver.
-   * @default false
-   *
-   * @example
-   * ```yml
-   * generates:
-   * path/to/file.ts:
-   *  plugins:
-   *    - typescript
-   *    - typescript-resolvers
-   *  config:
-   *    useIndexSignature: true
-   * ```
-   */
-  useIndexSignature?: boolean;
-  /**
-   * @name noSchemaStitching
-   * @type boolean
-   * @description Disables Schema Stitching support
-   * @default false
-   * @warning The default behavior will be reversed in the next major release. Support for Schema Stitching will be disabled by default.
-   *
-   * @example
-   * ```yml
-   * generates:
-   * path/to/file.ts:
-   *  plugins:
-   *    - typescript
-   *    - typescript-resolvers
-   *  config:
-   *    noSchemaStitching: true
-   * ```
-   */
-  noSchemaStitching?: boolean;
-
-  /**
-   * @name customResolveInfo
-   * @type string
-   * @description You can provide your custom GraphQLResolveInfo instead of the default one from graphql-js
-   * @default "graphql#GraphQLResolveInfo"
-   *
-   * @example
-   * ```yml
-   * generates:
-   * path/to/file.ts:
-   *  plugins:
-   *    - typescript
-   *    - typescript-resolvers
-   *  config:
-   *    customResolveInfo: ./my-types#MyResolveInfo
-   * ```
-   */
-  customResolveInfo?: string;
-}
+import { TypeScriptResolversPluginConfig } from './config';
 
 export const plugin: PluginFunction<TypeScriptResolversPluginConfig> = (schema: GraphQLSchema, documents: Types.DocumentFile[], config: TypeScriptResolversPluginConfig) => {
   const imports = [];
@@ -115,6 +39,13 @@ export type StitchingResolver<TResult, TParent, TContext, TArgs> = {
   const stitchingResolverUsage = `StitchingResolver<TResult, TParent, TContext, TArgs>`;
 
   if (visitor.hasFederation()) {
+    if (visitor.config.wrapFieldDefinitions) {
+      defsToInclude.push(`export type UnwrappedObject<T> = {
+        [P in keyof T]: T[P] extends infer R | Promise<infer R> | (() => infer R2 | Promise<infer R2>)
+          ? R & R2 : T[P]
+      };`);
+    }
+
     defsToInclude.push(`export type ReferenceResolver<TResult, TReference, TContext> = (
       reference: TReference,
       context: TContext,
@@ -183,6 +114,8 @@ export type TypeResolveFn<TTypes, TParent = {}, TContext = {}> = (
   context: TContext,
   info: GraphQLResolveInfo
 ) => Maybe<TTypes>;
+
+export type isTypeOfResolverFn<T = {}> = (obj: T, info: GraphQLResolveInfo) => boolean;
 
 export type NextResolverFn<T> = () => Promise<T>;
 

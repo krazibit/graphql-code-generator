@@ -1,6 +1,6 @@
-import { ScalarsMap, ParsedScalarsMap, NamingConvention, ConvertFn, ConvertOptions, LoadedFragment, NormalizedScalarsMap } from './types';
+import { ScalarsMap, ParsedScalarsMap, NamingConvention, ConvertFn, ConvertOptions, LoadedFragment, NormalizedScalarsMap, DeclarationKind } from './types';
 import { DeclarationBlockConfig } from './utils';
-import * as autoBind from 'auto-bind';
+import autoBind from 'auto-bind';
 import { convertFactory } from './naming';
 import { ASTNode } from 'graphql';
 
@@ -35,7 +35,7 @@ export interface RawConfig {
   /**
    * @name namingConvention
    * @type NamingConvention
-   * @default change-case#pascalCase
+   * @default pascal-case#pascalCase
    * @description Allow you to override the naming convention of the output.
    * You can either override all namings, or specify an object with specific custom naming convention per output.
    * The format of the converter must be a valid `module#method`.
@@ -47,25 +47,25 @@ export interface RawConfig {
    * @example Override All Names
    * ```yml
    * config:
-   *   namingConvention: change-case#lowerCase
+   *   namingConvention: lower-case#lowerCase
    * ```
    * @example Upper-case enum values
    * ```yml
    * config:
    *   namingConvention:
-   *     typeNames: change-case#pascalCase
-   *     enumValues: change-case#upperCase
+   *     typeNames: pascal-case#pascalCase
+   *     enumValues: upper-case#upperCase
    * ```
    * @example Keep
    * ```yml
    * config:
    *   namingConvention: keep
    * ```
-   * @example Transform Underscores
+   * @example Remove Underscores
    * ```yml
    * config:
    *   namingConvention:
-   *     typeNames: change-case#pascalCase
+   *     typeNames: pascal-case#pascalCase
    *     transformUnderscore: true
    * ```
    */
@@ -87,8 +87,7 @@ export interface RawConfig {
    * @name skipTypename
    * @type boolean
    * @default false
-   * @description Automatically adds `__typename` field to the generated types, even when they are not specified
-   * in the selection set.
+   * @description Does not add __typename to the generated types, unless it was specified in the selection set.
    *
    * @example
    * ```yml
@@ -148,5 +147,9 @@ export class BaseVisitor<TRawConfig extends RawConfig = RawConfig, TPluginConfig
     const useTypesPrefix = typeof (options && options.useTypesPrefix) === 'boolean' ? options.useTypesPrefix : true;
 
     return (useTypesPrefix ? this.config.typesPrefix : '') + this.config.convert(node, options);
+  }
+
+  protected getPunctuation(declarationKind: DeclarationKind): string {
+    return '';
   }
 }

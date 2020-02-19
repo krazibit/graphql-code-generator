@@ -1,6 +1,5 @@
-import { Types, CodegenPlugin } from '@graphql-codegen/plugin-helpers';
+import { DetailedError, Types, CodegenPlugin } from '@graphql-codegen/plugin-helpers';
 import { DocumentNode, GraphQLSchema, buildASTSchema } from 'graphql';
-import { DetailedError } from './errors';
 
 export interface ExecutePluginOptions {
   name: string;
@@ -32,9 +31,7 @@ export async function executePlugin(options: ExecutePluginOptions, plugin: Codeg
     );
   }
 
-  const schema = options.schemaAst;
-
-  const outputSchema: GraphQLSchema = schema || buildASTSchema(options.schema);
+  const outputSchema: GraphQLSchema = options.schemaAst || buildASTSchema(options.schema, options.config as any);
   const documents = options.documents || [];
 
   if (plugin.validate && typeof plugin.validate === 'function') {

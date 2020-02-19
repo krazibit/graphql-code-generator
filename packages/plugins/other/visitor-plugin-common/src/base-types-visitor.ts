@@ -145,8 +145,9 @@ export class BaseTypesVisitor<TRawConfig extends RawTypesConfig = RawTypesConfig
       const scalarValue = this.config.scalars[scalarName].type;
       const scalarType = this._schema.getType(scalarName);
       const comment = scalarType && scalarType.astNode && scalarType.description ? transformComment(scalarType.description, 1) : '';
+      const { scalar } = this._parsedConfig.declarationKind;
 
-      return comment + indent(`${scalarName}: ${scalarValue},`);
+      return comment + indent(`${scalarName}: ${scalarValue}${this.getPunctuation(scalar)}`);
     });
 
     return new DeclarationBlock(this._declarationBlockConfig)
@@ -186,8 +187,9 @@ export class BaseTypesVisitor<TRawConfig extends RawTypesConfig = RawTypesConfig
 
   InputValueDefinition(node: InputValueDefinitionNode): string {
     const comment = transformComment((node.description as any) as string, 1);
+    const { input } = this._parsedConfig.declarationKind;
 
-    return comment + indent(`${node.name}: ${node.type},`);
+    return comment + indent(`${node.name}: ${node.type}${this.getPunctuation(input)}`);
   }
 
   Name(node: NameNode): string {
@@ -197,8 +199,9 @@ export class BaseTypesVisitor<TRawConfig extends RawTypesConfig = RawTypesConfig
   FieldDefinition(node: FieldDefinitionNode): string {
     const typeString = (node.type as any) as string;
     const comment = transformComment((node.description as any) as string, 1);
+    const { type } = this._parsedConfig.declarationKind;
 
-    return comment + indent(`${node.name}: ${typeString},`);
+    return comment + indent(`${node.name}: ${typeString}${this.getPunctuation(type)}`);
   }
 
   UnionTypeDefinition(node: UnionTypeDefinitionNode, key: string | number | undefined, parent: any): string {
@@ -225,7 +228,7 @@ export class BaseTypesVisitor<TRawConfig extends RawTypesConfig = RawTypesConfig
   getObjectTypeDeclarationBlock(node: ObjectTypeDefinitionNode, originalNode: ObjectTypeDefinitionNode): DeclarationBlock {
     const optionalTypename = this.config.nonOptionalTypename ? '__typename' : '__typename?';
     const { type } = this._parsedConfig.declarationKind;
-    const allFields = [...(this.config.addTypename ? [indent(`${this.config['immutableTypes'] ? 'readonly' : ''} ${optionalTypename}: '${node.name}'${type === 'class' ? ';' : ','}`)] : []), ...node.fields] as string[];
+    const allFields = [...(this.config.addTypename ? [indent(`${this.config['immutableTypes'] ? 'readonly' : ''} ${optionalTypename}: '${node.name}'${this.getPunctuation(type)}`)] : []), ...node.fields] as string[];
     const interfacesNames = originalNode.interfaces ? originalNode.interfaces.map(i => this.convertName(i)) : [];
 
     const declarationBlock = new DeclarationBlock(this._declarationBlockConfig)
@@ -291,10 +294,14 @@ export class BaseTypesVisitor<TRawConfig extends RawTypesConfig = RawTypesConfig
         const mappedValue = this.config.enumValues[enumName];
 
         if (mappedValue.sourceFile) {
-          if (mappedValue.sourceIdentifier === 'default') {
+          if (mappedValue.isDefault) {
             return this._buildTypeImport(mappedValue.typeIdentifier, mappedValue.sourceFile, true);
           }
-          const identifier = mappedValue.sourceIdentifier !== mappedValue.typeIdentifier ? `${mappedValue.sourceIdentifier} as ${mappedValue.typeIdentifier}` : mappedValue.sourceIdentifier;
+          let identifier = mappedValue.sourceIdentifier;
+
+          if (mappedValue.sourceIdentifier !== mappedValue.typeIdentifier && !mappedValue.sourceIdentifier.includes(' as ')) {
+            identifier = `${mappedValue.sourceIdentifier} as ${mappedValue.typeIdentifier}`;
+          }
 
           return this._buildTypeImport(identifier, mappedValue.sourceFile);
         }
@@ -330,9 +337,9 @@ export class BaseTypesVisitor<TRawConfig extends RawTypesConfig = RawTypesConfig
       .map(enumOption => {
         const optionName = this.convertName(enumOption, { useTypesPrefix: false, transformUnderscore: true });
         const comment = transformComment((enumOption.description as any) as string, 1);
-        let enumValue: string = (enumOption.name as any) as string;
+        let enumValue: string | number = enumOption.name as any;
 
-        if (this.config.enumValues[typeName] && this.config.enumValues[typeName].mappedValues && this.config.enumValues[typeName].mappedValues[enumValue]) {
+        if (this.config.enumValues[typeName] && this.config.enumValues[typeName].mappedValues && typeof this.config.enumValues[typeName].mappedValues[enumValue] !== 'undefined') {
           enumValue = this.config.enumValues[typeName].mappedValues[enumValue];
         }
 

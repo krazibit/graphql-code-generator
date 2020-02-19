@@ -1,6 +1,4 @@
 // tslint:disable
-import * as Types from '../types.d';
-
 import gql from 'graphql-tag';
 import 'stencil-apollo';
 import { Component, Prop, h } from '@stencil/core';
@@ -26,7 +24,8 @@ const SubmitRepositoryDocument = gql`
 })
 export class SubmitRepositoryComponent {
   @Prop() renderer: import('stencil-apollo').MutationRenderer<SubmitRepositoryMutation, SubmitRepositoryMutationVariables>;
+  @Prop() variables: SubmitRepositoryMutationVariables;
   render() {
-    return <apollo-mutation mutation={SubmitRepositoryDocument} renderer={this.renderer} />;
+    return <apollo-mutation mutation={SubmitRepositoryDocument} variables={this.variables} renderer={this.renderer} />;
   }
 }

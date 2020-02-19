@@ -8,34 +8,38 @@ export interface TypeScriptDocumentNodesRawPluginConfig extends RawClientSideBas
   /**
    * @name namingConvention
    * @type NamingConvention
-   * @default change-case#pascalCase
+   * @default pascal-case#pascalCase
    * @description Allow you to override the naming convention of the output.
    * You can either override all namings, or specify an object with specific custom naming convention per output.
    * The format of the converter must be a valid `module#method`.
+   * Allowed values for specific output are: `typeNames`, `enumValues`.
    * You can also use "keep" to keep all GraphQL names as-is.
    * Additionally you can set `transformUnderscore` to `true` if you want to override the default behaviour,
-   * which is to preserve underscores.
+   * which is to preserves underscores.
    *
    * @example Override All Names
    * ```yml
    * config:
-   *   namingConvention: change-case#lowerCase
+   *   namingConvention: lower-case#lowerCase
    * ```
    * @example Upper-case enum values
    * ```yml
    * config:
-   *   namingConvention: change-case#pascalCase
+   *   namingConvention:
+   *     typeNames: pascal-case#pascalCase
+   *     enumValues: upper-case#upperCase
    * ```
    * @example Keep
    * ```yml
    * config:
    *   namingConvention: keep
    * ```
-   * @example Transform Underscores
+   * @example Remove Underscores
    * ```yml
    * config:
-   *   namingConvention: change-case#pascalCase
-   *   transformUnderscore: true
+   *   namingConvention:
+   *     typeNames: pascal-case#pascalCase
+   *     transformUnderscore: true
    * ```
    */
   namingConvention?: NamingConvention;
@@ -47,12 +51,13 @@ export interface TypeScriptDocumentNodesRawPluginConfig extends RawClientSideBas
    *
    * @example
    * ```yml
-   *  generates: src/api/user-service/queries.ts
    *  documents: src/api/user-service/queries.graphql
-   *  plugins:
-   *    - graphql-codegen-typescript-document-nodes
-   *  config:
-   *    namePrefix: 'gql'
+   *  generates:
+   *    src/api/user-service/queries.ts:
+   *    plugins:
+   *      - typescript-document-nodes
+   *    config:
+   *      namePrefix: 'gql'
    * ```
    */
   namePrefix?: string;
@@ -64,26 +69,22 @@ export interface TypeScriptDocumentNodesRawPluginConfig extends RawClientSideBas
    *
    * @example
    * ```yml
-   *  generates: src/api/user-service/queries.ts
    *  documents: src/api/user-service/queries.graphql
-   *  plugins:
-   *    - graphql-codegen-typescript-document-nodes
-   *  config:
-   *    nameSuffix: 'Query'
+   *  generates:
+   *    src/api/user-service/queries.ts:
+   *    plugins:
+   *      - typescript-document-nodes
+   *    config:
+   *      nameSuffix: 'Query'
    * ```
    */
   nameSuffix?: string;
-  transformUnderscore?: boolean;
   fragmentPrefix?: string;
   fragmentSuffix?: string;
 }
 
 export const plugin: PluginFunction<TypeScriptDocumentNodesRawPluginConfig> = (schema: GraphQLSchema, documents: Types.DocumentFile[], config: TypeScriptDocumentNodesRawPluginConfig) => {
-  const allAst = concatAST(
-    documents.reduce((prev, v) => {
-      return [...prev, v.content];
-    }, [])
-  );
+  const allAst = concatAST(documents.map(v => v.document));
 
   const allFragments: LoadedFragment[] = [
     ...(allAst.definitions.filter(d => d.kind === Kind.FRAGMENT_DEFINITION) as FragmentDefinitionNode[]).map(fragmentDef => ({ node: fragmentDef, name: fragmentDef.name.value, onType: fragmentDef.typeCondition.name.value, isExternal: false })),
@@ -93,7 +94,10 @@ export const plugin: PluginFunction<TypeScriptDocumentNodesRawPluginConfig> = (s
   const visitor = new TypeScriptDocumentNodesVisitor(schema, allFragments, config);
   const visitorResult = visit(allAst, { leave: visitor });
 
-  return [...visitor.getImports(), visitor.fragments, ...visitorResult.definitions.filter(t => typeof t === 'string')].join('\n');
+  return {
+    prepend: visitor.getImports(),
+    content: [visitor.fragments, ...visitorResult.definitions.filter(t => typeof t === 'string')].join('\n'),
+  };
 };
 
 export const validate: PluginValidateFn<any> = async (schema: GraphQLSchema, documents: Types.DocumentFile[], config: any, outputFile: string) => {

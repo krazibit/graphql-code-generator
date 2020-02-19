@@ -1,4 +1,4 @@
-import { pascalCase } from 'change-case';
+import { pascalCase } from 'pascal-case';
 import {
   NameNode,
   Kind,
@@ -47,8 +47,12 @@ export function block(array) {
   return array && array.length !== 0 ? '{\n' + array.join('\n') + '\n}' : '';
 }
 
-export function wrapWithSingleQuotes(str: string | NameNode): string {
-  return `'${str}'`;
+export function wrapWithSingleQuotes(value: string | number | NameNode): string {
+  if (typeof value === 'number' || (typeof value === 'string' && !isNaN(parseInt(value)) && parseFloat(value).toString() === value)) {
+    return `${value}`;
+  }
+
+  return `'${value}'`;
 }
 
 export function breakLine(str: string): string {
@@ -94,7 +98,7 @@ export function transformComment(comment: string | StringValueNode, indentLevel 
         return indent(`/** ${comment} */\n`, indentLevel);
       }
 
-      return indent(`${isFirst ? '/** \n' : ''} * ${line}${isLast ? '\n **/\n' : ''}`, indentLevel);
+      return indent(`${isFirst ? '/** \n' : ''} * ${line}${isLast ? '\n */\n' : ''}`, indentLevel);
     })
     .join('\n');
 }
@@ -244,10 +248,6 @@ export function convertNameParts(str: string, func: (str: string) => string, rem
     .join('_');
 }
 
-export function toPascalCase(str: string, transformUnderscore = false): string {
-  return convertNameParts(str, pascalCase, transformUnderscore);
-}
-
 export function buildScalars(schema: GraphQLSchema | undefined, scalarsMapping: ScalarsMap, defaultScalarsMapping: NormalizedScalarsMap = DEFAULT_SCALARS): ParsedScalarsMap {
   let result: ParsedScalarsMap = {};
 
@@ -314,7 +314,7 @@ export function getRootTypeNames(schema: GraphQLSchema): string[] {
 }
 
 export function stripMapperTypeInterpolation(identifier: string): string {
-  return identifier.trim().replace(/[^$\w].*$/, '');
+  return identifier.trim().replace(/<{.*}>/, '');
 }
 
 export const OMIT_TYPE = 'export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;';

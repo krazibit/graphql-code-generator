@@ -13,24 +13,24 @@ config:
     JSON: { [key: string]: any }
 ```
 
-### namingConvention (`NamingConvention`, default value: `change-case#pascalCase`)
+### namingConvention (`NamingConvention`, default value: `pascal-case#pascalCase`)
 
-Allow you to override the naming convention of the output. You can either override all namings, or specify an object with specific custom naming convention per output. The format of the converter must be a valid `module#method`. Allowed values for specific output are: `typeNames`, `enumValues`. You can also use "keep" to keep all GraphQL names as-is. Additionally you can set `transformUnderscore` to `true` if you want to override the default behaviour, which is to keep the underscores.
+Allow you to override the naming convention of the output. You can either override all namings, or specify an object with specific custom naming convention per output. The format of the converter must be a valid `module#method`. Allowed values for specific output are: `typeNames`, `enumValues`. You can also use "keep" to keep all GraphQL names as-is. Additionally you can set `transformUnderscore` to `true` if you want to override the default behaviour, which is to preserves underscores.
 
 
 #### Usage Example: Override All Names
 
 ```yml
 config:
-  namingConvention: change-case#lowerCase
+  namingConvention: lower-case#lowerCase
 ```
 #### Usage Example: Upper-case enum values
 
 ```yml
 config:
   namingConvention:
-    typeNames: change-case#pascalCase
-    enumValues: change-case#upperCase
+    typeNames: pascal-case#pascalCase
+    enumValues: upper-case#upperCase
 ```
 #### Usage Example: Keep
 
@@ -38,12 +38,13 @@ config:
 config:
   namingConvention: keep
 ```
-#### Usage Example: Transform Underscores
+#### Usage Example: Remove Underscores
 
 ```yml
 config:
-  typeNames: change-case#pascalCase
-  transformUnderscore: true
+  namingConvention:
+    typeNames: pascal-case#pascalCase
+    transformUnderscore: true
 ```
 
 ### typesPrefix (`string`, default value: `""`)
@@ -60,7 +61,7 @@ config:
 
 ### skipTypename (`boolean`, default value: `false`)
 
-Automatically adds `__typename` field to the generated types, even when they are not specified in the selection set.
+Does not add __typename to the generated types, unless it was specified in the selection set.
 
 
 #### Usage Example

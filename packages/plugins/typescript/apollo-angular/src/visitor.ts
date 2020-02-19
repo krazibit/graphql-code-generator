@@ -1,7 +1,9 @@
-import { ClientSideBaseVisitor, ClientSideBasePluginConfig, LoadedFragment } from '@graphql-codegen/visitor-plugin-common';
-import * as autoBind from 'auto-bind';
-import { OperationDefinitionNode, print, visit, GraphQLSchema } from 'graphql';
-import { ApolloAngularRawPluginConfig } from './index';
+import { ClientSideBaseVisitor, ClientSideBasePluginConfig, DocumentMode, LoadedFragment, indentMultiline } from '@graphql-codegen/visitor-plugin-common';
+import autoBind from 'auto-bind';
+import { OperationDefinitionNode, print, visit, GraphQLSchema, Kind } from 'graphql';
+import { ApolloAngularRawPluginConfig } from './config';
+import { camelCase } from 'camel-case';
+import { Types } from '@graphql-codegen/plugin-helpers';
 
 const R_MOD = /module\:\s*"([^"]+)"/; // matches: module: "..."
 const R_NAME = /name\:\s*"([^"]+)"/; // matches: name: "..."
@@ -13,14 +15,35 @@ function R_DEF(directive: string) {
 export interface ApolloAngularPluginConfig extends ClientSideBasePluginConfig {
   ngModule?: string;
   namedClient?: string;
+  serviceName?: string;
+  serviceProvidedInRoot?: boolean;
+  sdkClass?: boolean;
 }
 
 export class ApolloAngularVisitor extends ClientSideBaseVisitor<ApolloAngularRawPluginConfig, ApolloAngularPluginConfig> {
-  constructor(schema: GraphQLSchema, fragments: LoadedFragment[], private _allOperations: OperationDefinitionNode[], rawConfig: ApolloAngularRawPluginConfig) {
-    super(schema, fragments, rawConfig, {
-      ngModule: rawConfig.ngModule,
-      namedClient: rawConfig.namedClient,
-    });
+  private _operationsToInclude: {
+    node: OperationDefinitionNode;
+    documentVariableName: string;
+    operationType: string;
+    operationResultType: string;
+    operationVariablesTypes: string;
+    serviceName: string;
+  }[] = [];
+
+  constructor(schema: GraphQLSchema, fragments: LoadedFragment[], private _allOperations: OperationDefinitionNode[], rawConfig: ApolloAngularRawPluginConfig, documents?: Types.DocumentFile[]) {
+    super(
+      schema,
+      fragments,
+      rawConfig,
+      {
+        sdkClass: rawConfig.sdkClass,
+        ngModule: rawConfig.ngModule,
+        namedClient: rawConfig.namedClient,
+        serviceName: rawConfig.serviceName,
+        serviceProvidedInRoot: rawConfig.serviceProvidedInRoot,
+      },
+      documents
+    );
 
     autoBind(this);
   }
@@ -34,6 +57,10 @@ export class ApolloAngularVisitor extends ClientSideBaseVisitor<ApolloAngularRaw
     }
 
     const imports = [`import { Injectable } from '@angular/core';`, `import * as Apollo from 'apollo-angular';`];
+
+    if (this.config.sdkClass) {
+      imports.push(`import * as ApolloCore from 'apollo-client';`);
+    }
 
     const defs: Record<string, { path: string; module: string }> = {};
 
@@ -147,16 +174,100 @@ export class ApolloAngularVisitor extends ClientSideBaseVisitor<ApolloAngularRaw
     return `'root'`;
   }
 
+  private _getDocumentNodeVariable(node: OperationDefinitionNode, documentVariableName: string): string {
+    return this.config.documentMode === DocumentMode.external ? `Operations.${node.name.value}` : documentVariableName;
+  }
+
   protected buildOperation(node: OperationDefinitionNode, documentVariableName: string, operationType: string, operationResultType: string, operationVariablesTypes: string): string {
+    const serviceName = `${this.convertName(node)}GQL`;
+    this._operationsToInclude.push({
+      node,
+      documentVariableName,
+      operationType,
+      operationResultType,
+      operationVariablesTypes,
+      serviceName,
+    });
+
     const content = `
   @Injectable({
     providedIn: ${this._providedIn(node)}
   })
-  export class ${this.convertName(node)}GQL extends Apollo.${operationType}<${operationResultType}, ${operationVariablesTypes}> {
-    document = ${documentVariableName};
+  export class ${serviceName} extends Apollo.${operationType}<${operationResultType}, ${operationVariablesTypes}> {
+    document = ${this._getDocumentNodeVariable(node, documentVariableName)};
     ${this._namedClient(node)}
   }`;
 
     return content;
+  }
+
+  public get sdkClass(): string {
+    const actionType = operation => {
+      switch (operation) {
+        case 'Mutation':
+          return 'mutate';
+        case 'Subscription':
+          return 'subscribe';
+        default:
+          return 'fetch';
+      }
+    };
+
+    const allPossibleActions = this._operationsToInclude
+      .map(o => {
+        const optionalVariables = !o.node.variableDefinitions || o.node.variableDefinitions.length === 0 || o.node.variableDefinitions.every(v => v.type.kind !== Kind.NON_NULL_TYPE || !!v.defaultValue);
+
+        const options = o.operationType === 'Mutation' ? `${o.operationType}OptionsAlone<${o.operationResultType}, ${o.operationVariablesTypes}>` : `${o.operationType}OptionsAlone<${o.operationVariablesTypes}>`;
+
+        const method = `
+${camelCase(o.node.name.value)}(variables${optionalVariables ? '?' : ''}: ${o.operationVariablesTypes}, options?: ${options}) {
+  return this.${camelCase(o.serviceName)}.${actionType(o.operationType)}(variables, options)
+}`;
+
+        let watchMethod;
+
+        if (o.operationType === 'Query') {
+          watchMethod = `
+
+${camelCase(o.node.name.value)}Watch(variables${optionalVariables ? '?' : ''}: ${o.operationVariablesTypes}, options?: WatchQueryOptionsAlone<${o.operationVariablesTypes}>) {
+  return this.${camelCase(o.serviceName)}.watch(variables, options)
+}`;
+        }
+        return [method, watchMethod].join('');
+      })
+      .map(s => indentMultiline(s, 2));
+
+    // Inject the generated services in the constructor
+    const injectString = (service: string) => `private ${camelCase(service)}: ${service}`;
+    const injections = this._operationsToInclude
+      .map(op => injectString(op.serviceName))
+      .map(s => indentMultiline(s, 3))
+      .join(',\n');
+
+    const serviceName = this.config.serviceName || 'ApolloAngularSDK';
+    const providedIn = this.config.serviceProvidedInRoot === false ? '' : `{ providedIn: 'root' }`;
+
+    return `
+  type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
+
+  interface WatchQueryOptionsAlone<V>
+    extends Omit<ApolloCore.WatchQueryOptions<V>, 'query' | 'variables'> {}
+    
+  interface QueryOptionsAlone<V>
+    extends Omit<ApolloCore.QueryOptions<V>, 'query' | 'variables'> {}
+    
+  interface MutationOptionsAlone<T, V>
+    extends Omit<ApolloCore.MutationOptions<T, V>, 'mutation' | 'variables'> {}
+    
+  interface SubscriptionOptionsAlone<V>
+    extends Omit<ApolloCore.SubscriptionOptions<V>, 'query' | 'variables'> {}
+
+  @Injectable(${providedIn})
+  export class ${serviceName} {
+    constructor(
+${injections}
+    ) {}
+  ${allPossibleActions.join('\n')}
+  }`;
   }
 }

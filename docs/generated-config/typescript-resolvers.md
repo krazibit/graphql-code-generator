@@ -1,21 +1,4 @@
 
-### immutableTypes (`boolean`, default value: `false`)
-
-Generates immutable types by adding `readonly` to properties and uses `ReadonlyArray`.
-
-
-#### Usage Example
-
-```yml
-generates:
-path/to/file.ts:
- plugins:
-   - typescript
-   - typescript-resolvers
- config:
-   immutableTypes: true
-```
-
 ### useIndexSignature (`boolean`, default value: `false`)
 
 Adds an index signature to any generates resolver.
@@ -49,4 +32,21 @@ path/to/file.ts:
    - typescript-resolvers
  config:
    noSchemaStitching: true
+```
+
+### customResolveInfo (`string`, default value: `"graphql#GraphQLResolveInfo"`)
+
+You can provide your custom GraphQLResolveInfo instead of the default one from graphql-js
+
+
+#### Usage Example
+
+```yml
+generates:
+path/to/file.ts:
+ plugins:
+   - typescript
+   - typescript-resolvers
+ config:
+   customResolveInfo: ./my-types#MyResolveInfo
 ```

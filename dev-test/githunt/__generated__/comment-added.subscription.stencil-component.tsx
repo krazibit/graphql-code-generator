@@ -1,6 +1,4 @@
 // tslint:disable
-import * as Types from '../types.d';
-
 import gql from 'graphql-tag';
 import 'stencil-apollo';
 import { Component, Prop, h } from '@stencil/core';
@@ -34,7 +32,8 @@ const OnCommentAddedDocument = gql`
 })
 export class OnCommentAddedComponent {
   @Prop() renderer: import('stencil-apollo').SubscriptionRenderer<OnCommentAddedSubscription, OnCommentAddedSubscriptionVariables>;
+  @Prop() variables: OnCommentAddedSubscriptionVariables;
   render() {
-    return <apollo-subscription subscription={OnCommentAddedDocument} renderer={this.renderer} />;
+    return <apollo-subscription subscription={OnCommentAddedDocument} variables={this.variables} renderer={this.renderer} />;
   }
 }

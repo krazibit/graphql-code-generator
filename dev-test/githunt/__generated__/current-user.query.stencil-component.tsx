@@ -1,6 +1,4 @@
 // tslint:disable
-import * as Types from '../types.d';
-
 import gql from 'graphql-tag';
 import 'stencil-apollo';
 import { Component, Prop, h } from '@stencil/core';
@@ -25,7 +23,8 @@ const CurrentUserForProfileDocument = gql`
 })
 export class CurrentUserForProfileComponent {
   @Prop() renderer: import('stencil-apollo').QueryRenderer<CurrentUserForProfileQuery, CurrentUserForProfileQueryVariables>;
+  @Prop() variables: CurrentUserForProfileQueryVariables;
   render() {
-    return <apollo-query query={CurrentUserForProfileDocument} renderer={this.renderer} />;
+    return <apollo-query query={CurrentUserForProfileDocument} variables={this.variables} renderer={this.renderer} />;
   }
 }

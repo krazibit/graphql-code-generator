@@ -1,4 +1,5 @@
 import { GraphQLSchema, DocumentNode } from 'graphql';
+import { Source } from '@graphql-toolkit/common';
 
 export namespace Types {
   export interface GenerateOptions {
@@ -23,10 +24,7 @@ export namespace Types {
     };
   };
 
-  export type DocumentFile = {
-    filePath: string;
-    content: DocumentNode;
-  };
+  export type DocumentFile = Source;
 
   /* Utils */
   export type ObjectMap<T = any> = { [key: string]: T };
@@ -65,14 +63,19 @@ export namespace Types {
   };
 
   /* Output Builder Preset */
-  export type PresetFnArgs<Config = any> = {
+  export type PresetFnArgs<
+    Config = any,
+    PluginConfig = {
+      [key: string]: any;
+    }
+  > = {
     presetConfig: Config;
     baseOutputDir: string;
     plugins: Types.ConfiguredPlugin[];
     schema: DocumentNode;
     schemaAst?: GraphQLSchema;
     documents: Types.DocumentFile[];
-    config: { [key: string]: any };
+    config: PluginConfig;
     pluginMap: {
       [name: string]: CodegenPlugin;
     };
@@ -110,6 +113,7 @@ export namespace Types {
       globalIdentifier?: string;
     };
     hooks?: LifecycleHooksDefinition<string | string[]>;
+    cwd?: string;
   }
 
   export type ComplexPluginOutput = { content: string; prepend?: string[]; append?: string[] };

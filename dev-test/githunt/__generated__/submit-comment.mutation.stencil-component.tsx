@@ -1,8 +1,5 @@
 // tslint:disable
-import * as Types from '../types.d';
-
 import gql from 'graphql-tag';
-import { CommentsPageCommentFragmentDoc } from './comments-page-comment.fragment.stencil-component';
 import 'stencil-apollo';
 import { Component, Prop, h } from '@stencil/core';
 
@@ -29,7 +26,8 @@ const SubmitCommentDocument = gql`
 })
 export class SubmitCommentComponent {
   @Prop() renderer: import('stencil-apollo').MutationRenderer<SubmitCommentMutation, SubmitCommentMutationVariables>;
+  @Prop() variables: SubmitCommentMutationVariables;
   render() {
-    return <apollo-mutation mutation={SubmitCommentDocument} renderer={this.renderer} />;
+    return <apollo-mutation mutation={SubmitCommentDocument} variables={this.variables} renderer={this.renderer} />;
   }
 }

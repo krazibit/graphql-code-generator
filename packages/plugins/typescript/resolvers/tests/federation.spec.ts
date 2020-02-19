@@ -118,6 +118,7 @@ describe('TypeScript Resolvers Plugin + Apollo Federation', () => {
         __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['User']>, { __typename: 'User' } & Pick<ParentType, 'id'>, ContextType>,
         id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>,
         username?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>,
+        __isTypeOf?: isTypeOfResolverFn<ParentType>,
       };
     `);
   });
@@ -152,6 +153,7 @@ describe('TypeScript Resolvers Plugin + Apollo Federation', () => {
         __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['User']>, { __typename: 'User' } & Pick<ParentType, 'id'>, ContextType>,
         id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>,
         name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>,
+        __isTypeOf?: isTypeOfResolverFn<ParentType>,
       };
     `);
   });
@@ -279,6 +281,7 @@ describe('TypeScript Resolvers Plugin + Apollo Federation', () => {
         id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>,
         name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>,
         username?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>,
+        __isTypeOf?: isTypeOfResolverFn<ParentType>,
       };
     `);
   });
@@ -340,5 +343,46 @@ describe('TypeScript Resolvers Plugin + Apollo Federation', () => {
     expect(content).not.toContain('GraphQLScalarTypeConfig');
     // no GraphQLScalarType
     expect(content).not.toContain('GraphQLScalarType');
+  });
+
+  describe('When field definition wrapping is enabled', () => {
+    it('should add the UnwrappedObject type', async () => {
+      const federatedSchema = /* GraphQL */ `
+        type User @key(fields: "id") {
+          id: ID!
+        }
+      `;
+
+      const content = await generate({
+        schema: federatedSchema,
+        config: {
+          federation: true,
+          wrapFieldDefinitions: true,
+        },
+      });
+
+      expect(content).toBeSimilarStringTo(`type UnwrappedObject<T> = {`);
+    });
+
+    it('should add UnwrappedObject around ParentType for __resloveReference', async () => {
+      const federatedSchema = /* GraphQL */ `
+        type User @key(fields: "id") {
+          id: ID!
+        }
+      `;
+
+      const content = await generate({
+        schema: federatedSchema,
+        config: {
+          federation: true,
+          wrapFieldDefinitions: true,
+        },
+      });
+
+      // __resolveReference should be unwrapped
+      expect(content).toBeSimilarStringTo(`{ __typename: 'User' } & Pick<UnwrappedObject<ParentType>, 'id'>`);
+      // but ID should not
+      expect(content).toBeSimilarStringTo(`id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>`);
+    });
   });
 });

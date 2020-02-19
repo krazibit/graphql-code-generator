@@ -4,13 +4,13 @@
     "clean": "lerna clean --yes && rm -rf node_modules",
     "build": "lerna run build --ignore @graphql-codegen/live-demo --ignore @graphql-codegen/website",
     "test": "lerna run test --ignore @graphql-codegen/live-demo --ignore @graphql-codegen/website",
-    "lint": "lerna run lint --ignore @graphql-codegen/live-demo --ignore @graphql-codegen/website ",
-    "test-and-build": " yarn build && yarn test",
+    "lint": "lerna run lint --ignore @graphql-codegen/live-demo --ignore @graphql-codegen/website",
+    "test-and-build": "yarn build && yarn test",
     "prerelease": "yarn test-and-build",
     "prerelease:canary": "yarn test-and-build",
-    "release": "lerna publish --exact --force-publish=\"*\" --ignore @graphql-codegen/live-demo --ignore @graphql-codegen/website",
-    "release:canary": "lerna publish --force-publish=\"*\" --canary --exact --ignore @graphql-codegen/live-demo --ignore @graphql-codegen/website ",
-    "ci:release:canary": "lerna publish --ignore @graphql-codegen/live-demo --ignore @graphql-codegen/website --force-publish=\"*\" --preid \"alpha-`git rev-parse --short HEAD`\" --canary --exact --yes",
+    "release": "lerna publish --contents dist --exact --force-publish=\"*\" --ignore @graphql-codegen/live-demo --ignore @graphql-codegen/website",
+    "release:canary": "lerna publish --contents dist --force-publish=\"*\" --canary --exact --ignore @graphql-codegen/live-demo --ignore @graphql-codegen/website ",
+    "ci:release:canary": "lerna publish --contents dist --ignore @graphql-codegen/live-demo --ignore @graphql-codegen/website --force-publish=\"*\" --preid \"alpha-`git rev-parse --short HEAD`\" --canary --exact --yes",
     "generate:examples": "./dev-test/generate-all.sh",
     "build-website": "lerna run build"
   },
@@ -23,8 +23,11 @@
     "packages": [
       "packages/*",
       "packages/utils/*",
-      "packages/plugins/**/*",
-      "packages/presets/**/*",
+      "packages/plugins/flow/*",
+      "packages/plugins/java/*",
+      "packages/plugins/typescript/*",
+      "packages/plugins/other/*",
+      "packages/presets/*",
       "website",
       "website/live-demo"
     ],
@@ -34,35 +37,43 @@
     ]
   },
   "devDependencies": {
+    "dfds-github-scripts": "0.0.2",
     "@apollo/react-common": "3.1.3",
     "@apollo/react-components": "3.1.3",
     "@apollo/react-hoc": "3.1.3",
     "@apollo/react-hooks": "3.1.3",
     "@types/common-tags": "1.8.0",
     "@types/glob": "7.1.1",
-    "@types/jest": "24.0.19",
-    "@types/mkdirp": "0.5.2",
-    "@types/node": "10.14.22",
-    "@types/request": "2.48.3",
+    "@types/jest": "25.1.2",
+    "@types/mkdirp": "1.0.0",
+    "@types/node": "10.17.15",
+    "@types/react": "16.9.20",
+    "@types/request": "2.48.4",
+    "react": "16.12.0",
+    "react-dom": "16.12.0",
+    "apollo-cache": "1.3.4",
+    "apollo-client": "2.6.8",
     "apollo-link": "1.2.13",
-    "apollo-server": "2.9.7",
-    "graphql": "14.5.8",
-    "graphql-tag": "2.10.1",
-    "graphql-tools": "4.0.5",
-    "husky": "3.0.9",
-    "jest": "24.9.0",
-    "jest-docblock": "24.9.0",
-    "jest-junit": "8.0.0",
-    "lerna": "3.18.2",
-    "lint-staged": "9.4.2",
-    "rimraf": "3.0.0",
-    "ts-jest": "24.1.0",
-    "tslint": "5.20.0",
-    "typescript": "3.6.4",
-    "urql": "1.6.1"
+    "apollo-server": "2.10.1",
+    "apollo-utilities": "1.3.3",
+    "graphql": "14.6.0",
+    "graphql-tag": "2.10.3",
+    "graphql-tools": "4.0.6",
+    "husky": "4.2.3",
+    "jest": "25.1.0",
+    "jest-docblock": "25.1.0",
+    "jest-junit": "10.0.0",
+    "lerna": "3.20.2",
+    "lint-staged": "10.0.7",
+    "rimraf": "3.0.2",
+    "ts-jest": "25.2.0",
+    "tslint": "5.20.1",
+    "stencil-apollo": "0.1.5",
+    "typescript": "3.7.5",
+    "urql": "1.9.0"
   },
   "lint-staged": {
-    "packages/**/*.{ts,tsx}": [
+    "packages/**/src/**/*.{ts,tsx}": [
       "tslint --fix",
       "git add"
     ],
@@ -70,5 +81,8 @@
       "prettier --write",
       "git add -f"
     ]
+  },
+  "resolutions": {
+    "@types/react": "16.9.20"
   }
 }

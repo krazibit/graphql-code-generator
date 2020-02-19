@@ -1,10 +1,9 @@
-import { Types, isComplexPluginOutput, turnExtensionsIntoObjectTypes, federationSpec } from '@graphql-codegen/plugin-helpers';
-import { visit, buildASTSchema } from 'graphql';
-import { mergeSchemas } from './merge-schemas';
+import { DetailedError, Types, isComplexPluginOutput, federationSpec } from '@graphql-codegen/plugin-helpers';
+import { visit, parse, DefinitionNode } from 'graphql';
 import { executePlugin } from './execute-plugin';
-import { DetailedError } from './errors';
-import { checkValidationErrors, validateGraphQlDocuments } from 'graphql-toolkit';
-import { Kind } from 'graphql';
+import { checkValidationErrors, validateGraphQlDocuments, printSchemaWithDirectives } from '@graphql-toolkit/common';
+import { Kind, print } from 'graphql';
+import { mergeSchemas } from '@graphql-toolkit/schema-merging';
 
 export async function codegen(options: Types.GenerateOptions): Promise<string> {
   const documents = options.documents || [];
@@ -15,46 +14,62 @@ export async function codegen(options: Types.GenerateOptions): Promise<string> {
 
   const pluginPackages = Object.keys(options.pluginMap).map(key => options.pluginMap[key]);
 
+  if (!options.schemaAst) {
+    options.schemaAst = mergeSchemas({
+      schemas: [],
+      typeDefs: [options.schema],
+      convertExtensions: true,
+      assumeValid: true,
+      assumeValidSDL: true,
+      ...options.config,
+    });
+  }
+
   // merged schema with parts added by plugins
   let schemaChanged = false;
-  let schema = pluginPackages.reduce((schema, plugin) => {
+  let schemaAst = pluginPackages.reduce((schemaAst, plugin) => {
     const addToSchema = typeof plugin.addToSchema === 'function' ? plugin.addToSchema(options.config) : plugin.addToSchema;
 
     if (!addToSchema) {
-      return schema;
+      return schemaAst;
     }
 
-    schemaChanged = true;
-
-    return mergeSchemas([schema, addToSchema]);
-  }, options.schema);
+    return mergeSchemas({
+      schemas: [schemaAst],
+      typeDefs: [addToSchema],
+    });
+  }, options.schemaAst);
 
   const federationInConfig = pickFlag('federation', options.config);
   const isFederation = prioritize(federationInConfig, false);
 
-  if (isFederation) {
+  if (isFederation && !schemaAst.getDirective('external') && !schemaAst.getDirective('requires') && !schemaAst.getDirective('provides') && !schemaAst.getDirective('key')) {
     schemaChanged = true;
-    schema = turnExtensionsIntoObjectTypes(mergeSchemas([schema, federationSpec]));
+    schemaAst = mergeSchemas({
+      schemas: [schemaAst],
+      typeDefs: [federationSpec],
+      convertExtensions: true,
+      assumeValid: true,
+      assumeValidSDL: true,
+    });
   }
 
   if (schemaChanged) {
-    options.schemaAst = buildASTSchema(schema, {
-      assumeValidSDL: isFederation,
-    });
+    options.schema = parse(printSchemaWithDirectives(schemaAst));
   }
 
   const skipDocumentValidation = typeof options.config === 'object' && !Array.isArray(options.config) && options.config.skipDocumentsValidation;
 
   if (options.schemaAst && documents.length > 0 && !skipDocumentValidation) {
-    const extraFragments = options.config && (options.config as any)['externalFragments'] ? (options.config as any)['externalFragments'] : [];
-    const errors = await validateGraphQlDocuments(options.schemaAst, [...documents, ...extraFragments.map((f: any) => ({ filePath: f.importFrom, content: { kind: Kind.DOCUMENT, definitions: [f.node] } }))]);
+    const extraFragments: { importFrom: string; node: DefinitionNode }[] = options.config && (options.config as any)['externalFragments'] ? (options.config as any)['externalFragments'] : [];
+    const errors = await validateGraphQlDocuments(options.schemaAst, [...documents, ...extraFragments.map(f => ({ location: f.importFrom, document: { kind: Kind.DOCUMENT, definitions: [f.node] } }))]);
     checkValidationErrors(errors);
   }
 
   const prepend: Set<string> = new Set<string>();
   const append: Set<string> = new Set<string>();
 
-  const output$ = Promise.all(
+  const output = await Promise.all(
     options.plugins.map(async plugin => {
       const name = Object.keys(plugin)[0];
       const pluginPackage = options.pluginMap[name];
@@ -73,8 +88,8 @@ export async function codegen(options: Types.GenerateOptions): Promise<string> {
           name,
           config: execConfig,
           parentConfig: options.config,
-          schema,
-          schemaAst: options.schemaAst,
+          schema: options.schema,
+          schemaAst,
           documents: options.documents,
           outputFilename: options.filename,
           allPlugins: options.plugins,
@@ -103,8 +118,6 @@ export async function codegen(options: Types.GenerateOptions): Promise<string> {
       return '';
     })
   );
-
-  const output = await output$;
 
   return [...sortPrependValues(Array.from(prepend.values())), ...output, ...append.values()].join('\n');
 }
@@ -140,18 +153,25 @@ export function sortPrependValues(values: string[]): string[] {
 function validateDuplicateDocuments(files: Types.DocumentFile[]) {
   // duplicated names
   const operationMap: {
-    [name: string]: string[];
+    [name: string]: {
+      paths: Set<string>;
+      contents: Set<string>;
+    };
   } = {};
 
   files.forEach(file => {
-    visit(file.content, {
+    visit(file.document, {
       OperationDefinition(node) {
         if (typeof node.name !== 'undefined') {
           if (!operationMap[node.name.value]) {
-            operationMap[node.name.value] = [];
+            operationMap[node.name.value] = {
+              paths: new Set(),
+              contents: new Set(),
+            };
           }
 
-          operationMap[node.name.value].push(file.filePath);
+          operationMap[node.name.value].paths.add(file.location);
+          operationMap[node.name.value].contents.add(print(node));
         }
       },
     });
@@ -160,7 +180,7 @@ function validateDuplicateDocuments(files: Types.DocumentFile[]) {
   const names = Object.keys(operationMap);
 
   if (names.length) {
-    const duplicated = names.filter(name => operationMap[name].length > 1);
+    const duplicated = names.filter(name => operationMap[name].contents.size > 1);
 
     if (!duplicated.length) {
       return;
@@ -170,7 +190,7 @@ function validateDuplicateDocuments(files: Types.DocumentFile[]) {
       .map(name =>
         `
       * ${name} found in:
-        ${operationMap[name]
+        ${[...operationMap[name].paths]
           .map(filepath => {
             return `
             - ${filepath}
